@@ -23,14 +23,18 @@ Keep this split. It's what lets multi-user support and paid levels (`entitlement
 
 **Mastery requires two things, not one**: `correct_streak >= MASTERY_STREAK` (3, in-session confidence) AND `distinct_correct_days >= MASTERY_MIN_DAYS` (2, survives a gap) — both in `app/kana/page.tsx`. A same-session streak alone proves short-term recall, not memorization; a character can only be correctly answered once per calendar day toward the day count (`last_correct_date` guards this), so mastering everything in one sitting is structurally impossible no matter how well a session goes. A miss resets `correct_streak` to 0 but does not reset `distinct_correct_days` — days already earned stay earned. Don't collapse this back to a single streak check.
 
-Kana drill in `app/kana/page.tsx` works row by row (gojuon rows, e.g. あ-い-う-え-お), grouped by `sort_order` via `ROW_BOUNDS`, not per-script as a flat pool:
+Kana is grouped into gojuon rows (e.g. あ-い-う-え-お), by `sort_order` via `ROW_BOUNDS` in `lib/kana.ts` — the row logic (`buildRows`, `getRow`, `pickInRow`, `rowStatus`, `isRowUnstarted`) lives there, shared between `app/kana/page.tsx` and `components/KanaRowPicker.tsx`, not duplicated.
 
-1. A new row starts with a **`KanaRowOverview`** — all its characters + romaji shown together, so the shared vowel pattern is visible before drilling. This state isn't persisted; it's derived (`isRowUnstarted`) from every character in the row having no progress row yet, plus a client-side `dismissedRow` flag so "start row" can move past it.
-2. Within a row, characters are introduced one at a time in "learn" mode (character + romaji + mnemonic together, no guessing) — never quizzed cold.
+**Row selection is user-driven, not forced sequential.** `app/kana/page.tsx` shows a `KanaRowPicker` grid of every row (both scripts) with its status (mastered/learning/not started) — the user taps any row to open it, in any order. The picker highlights one row as "continue" (the first `learning` row, or first `new` row if none are in progress) as a suggestion, but that's a hint, not a gate. Don't reintroduce a forced "always resume the earliest incomplete row" flow — that was the previous design and was explicitly rejected as too restrictive.
+
+Once a row is opened (`selectedRowKey`):
+
+1. A brand-new row starts with a **`KanaRowOverview`** — all its characters + romaji shown together, so the shared vowel pattern is visible before drilling. Derived (`isRowUnstarted`), not persisted, plus a client-side `dismissedRow` flag so "start row" can move past it.
+2. Characters are introduced one at a time in "learn" mode (character + romaji + mnemonic together, no guessing) — never quizzed cold.
 3. Once every character in the row has been introduced, quizzing (guess → reveal → grade) cycles among that row's unmastered characters only.
-4. Only once the whole row is mastered does the next row (by `sort_order`) begin.
+4. When the row is fully mastered, a completion panel offers to go back to the picker — it does not auto-advance to another row.
 
-Don't fold kana into the SM-2 `cards` flow or flatten this back to a per-script pool — the row grouping and the learn-before-quiz sequencing are both there deliberately (see conversation: kana mastery is front-loaded and testing recall on something never seen is just guessing).
+Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-before-quiz sequencing are there deliberately (kana mastery is front-loaded and testing recall on something never seen is just guessing).
 
 ## Scheduling
 

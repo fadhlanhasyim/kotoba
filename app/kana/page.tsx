@@ -3,80 +3,32 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { DrillKana, KanaCharacter, UserKanaProgress } from "@/lib/types";
+import type { KanaCharacter, UserKanaProgress } from "@/lib/types";
+import {
+  MASTERY_STREAK,
+  MASTERY_MIN_DAYS,
+  ROW_LABELS,
+  buildRows,
+  getRow,
+  isRowUnstarted,
+  pickInRow,
+  rowStatus,
+  today,
+  type KanaRow,
+  type PickedCard,
+  type ScriptFilter,
+} from "@/lib/kana";
 import KanaCard from "@/components/KanaCard";
 import KanaRowOverview from "@/components/KanaRowOverview";
-
-const MASTERY_STREAK = 3;
-const MASTERY_MIN_DAYS = 2; // must be correct on at least this many distinct days, not just in one sitting
-type ScriptFilter = "hiragana" | "katakana" | "both";
-
-function today(now: Date): string {
-  return now.toISOString().slice(0, 10);
-}
-
-// Gojuon rows by sort_order range (1-based, inclusive): a,ka,sa,ta,na,ha,ma,ya,ra,wa/n.
-const ROW_BOUNDS: [number, number][] = [
-  [1, 5], [6, 10], [11, 15], [16, 20], [21, 25],
-  [26, 30], [31, 35], [36, 38], [39, 43], [44, 46],
-];
-
-interface KanaRow {
-  key: string;
-  characters: DrillKana[];
-}
-
-interface PickedCard {
-  mode: "learn" | "quiz";
-  kana: DrillKana;
-}
-
-function buildRows(
-  kana: KanaCharacter[],
-  progress: Record<string, UserKanaProgress>,
-  script: ScriptFilter
-): KanaRow[] {
-  const scripts: ("hiragana" | "katakana")[] = script === "both" ? ["hiragana", "katakana"] : [script];
-  const rows: KanaRow[] = [];
-  for (const s of scripts) {
-    for (let r = 0; r < ROW_BOUNDS.length; r++) {
-      const [lo, hi] = ROW_BOUNDS[r];
-      const characters = kana
-        .filter((k) => k.script === s && k.sort_order >= lo && k.sort_order <= hi)
-        .map((k) => ({ ...k, progress: progress[k.id] ?? null }))
-        .sort((a, b) => a.sort_order - b.sort_order);
-      if (characters.length > 0) rows.push({ key: `${s}-${r}`, characters });
-    }
-  }
-  return rows;
-}
-
-function findCurrentRow(rows: KanaRow[]): KanaRow | null {
-  return rows.find((row) => row.characters.some((c) => !c.progress?.mastered_at)) ?? null;
-}
-
-function isRowUnstarted(row: KanaRow): boolean {
-  return row.characters.every((c) => !c.progress);
-}
-
-function pickInRow(row: KanaRow, excludeId: string | null): PickedCard | null {
-  const notIntroduced = row.characters.filter((c) => !c.progress);
-  if (notIntroduced.length > 0) {
-    const next = [...notIntroduced].sort((a, b) => a.sort_order - b.sort_order)[0];
-    return { mode: "learn", kana: next };
-  }
-  const active = row.characters.filter((c) => c.progress && !c.progress.mastered_at);
-  if (active.length === 0) return null;
-  const options = active.length > 1 ? active.filter((c) => c.id !== excludeId) : active;
-  return { mode: "quiz", kana: options[Math.floor(Math.random() * options.length)] };
-}
+import KanaRowPicker from "@/components/KanaRowPicker";
 
 export default function KanaDrillPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [kana, setKana] = useState<KanaCharacter[]>([]);
   const [progress, setProgress] = useState<Record<string, UserKanaProgress>>({});
-  const [script, setScript] = useState<ScriptFilter>("hiragana");
+  const [script, setScript] = useState<ScriptFilter>("both");
+  const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [dismissedRow, setDismissedRow] = useState<string | null>(null);
   const [current, setCurrent] = useState<PickedCard | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -106,18 +58,20 @@ export default function KanaDrillPage() {
 
       setKana(kanaList);
       setProgress(progressMap);
-      const currentRow = findCurrentRow(buildRows(kanaList, progressMap, "hiragana"));
-      setCurrent(currentRow && !isRowUnstarted(currentRow) ? pickInRow(currentRow, null) : null);
       setLoading(false);
     }
     load();
   }, [router]);
 
-  function selectScript(next: ScriptFilter) {
-    setScript(next);
-    const currentRow = findCurrentRow(buildRows(kana, progress, next));
-    setCurrent(currentRow && !isRowUnstarted(currentRow) ? pickInRow(currentRow, current?.kana.id ?? null) : null);
+  function openRow(row: KanaRow) {
+    setSelectedRowKey(row.key);
+    setCurrent(isRowUnstarted(row) ? null : pickInRow(row, null));
     setRevealed(false);
+  }
+
+  function backToGroups() {
+    setSelectedRowKey(null);
+    setCurrent(null);
   }
 
   function startRow(row: KanaRow) {
@@ -144,8 +98,8 @@ export default function KanaDrillPage() {
 
   function advance(nextProgress: Record<string, UserKanaProgress>, previousCardId: string) {
     setProgress(nextProgress);
-    const currentRow = findCurrentRow(buildRows(kana, nextProgress, script));
-    setCurrent(currentRow && !isRowUnstarted(currentRow) ? pickInRow(currentRow, previousCardId) : null);
+    const row = selectedRowKey ? getRow(kana, nextProgress, selectedRowKey) : null;
+    setCurrent(row ? pickInRow(row, previousCardId) : null);
     setRevealed(false);
   }
 
@@ -207,64 +161,97 @@ export default function KanaDrillPage() {
   if (loading) return <p className="caption">Loading kana…</p>;
 
   const rows = buildRows(kana, progress, script);
-  const flatAll = rows.flatMap((r) => r.characters);
-  const masteredCount = flatAll.filter((k) => k.progress?.mastered_at).length;
-  const activeCount = flatAll.filter((k) => k.progress && !k.progress.mastered_at).length;
-  const newCount = flatAll.length - masteredCount - activeCount;
-  const currentRow = findCurrentRow(rows);
-  const showOverview = !!currentRow && isRowUnstarted(currentRow) && dismissedRow !== currentRow.key;
+  const selectedRow = selectedRowKey ? getRow(kana, progress, selectedRowKey) : null;
+
+  if (!selectedRow) {
+    const flatAll = rows.flatMap((r) => r.characters);
+    const masteredCount = flatAll.filter((k) => k.progress?.mastered_at).length;
+    const activeCount = flatAll.filter((k) => k.progress && !k.progress.mastered_at).length;
+    const newCount = flatAll.length - masteredCount - activeCount;
+    const recommendedKey =
+      rows.find((r) => rowStatus(r) === "learning")?.key ?? rows.find((r) => rowStatus(r) === "new")?.key ?? null;
+
+    return (
+      <div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          <h1>Kana drill</h1>
+          <p className="caption">
+            {masteredCount} mastered &middot; {activeCount} learning &middot; {newCount} new
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {(["hiragana", "katakana", "both"] as ScriptFilter[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setScript(s)}
+              style={{ borderBottom: script === s ? "2px solid var(--accent)" : "2px solid transparent" }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <KanaRowPicker rows={rows} recommendedKey={recommendedKey} onSelect={openRow} />
+      </div>
+    );
+  }
+
+  const showOverview = isRowUnstarted(selectedRow) && dismissedRow !== selectedRow.key;
+  const rowLabel = `${ROW_LABELS[selectedRow.rowIndex]}-row`;
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-        <h1>Kana drill</h1>
-        <p className="caption">
-          {masteredCount} mastered &middot; {activeCount} learning &middot; {newCount} new
-        </p>
-      </div>
+      <button onClick={backToGroups} style={{ marginBottom: 16 }}>
+        <i className="ti ti-arrow-left" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+        All groups
+      </button>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {(["hiragana", "katakana", "both"] as ScriptFilter[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => selectScript(s)}
-            style={{
-              borderBottom: script === s ? "2px solid var(--accent)" : "2px solid transparent",
-            }}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-
-      {!currentRow ? (
-        <div>
-          <h2>All mastered</h2>
-          <p>
-            Every {script} character has held a {MASTERY_STREAK}-in-a-row streak across at least{" "}
-            {MASTERY_MIN_DAYS} different days. Try another script above.
+      {current ? (
+        <>
+          <p className="caption" style={{ marginBottom: 16 }}>
+            {selectedRow.script} &middot; {rowLabel}
+          </p>
+          <KanaCard
+            kana={current.kana}
+            mode={current.mode}
+            revealed={revealed}
+            onReveal={() => setRevealed(true)}
+            onGrade={handleGrade}
+            onLearned={handleLearned}
+            progressHint={
+              current.mode === "quiz"
+                ? `streak ${current.kana.progress?.correct_streak ?? 0}/${MASTERY_STREAK} today · ${
+                    current.kana.progress?.distinct_correct_days ?? 0
+                  }/${MASTERY_MIN_DAYS} days confirmed`
+                : undefined
+            }
+          />
+        </>
+      ) : showOverview ? (
+        <KanaRowOverview characters={selectedRow.characters} onStart={() => startRow(selectedRow)} />
+      ) : (
+        <div className="card rise" style={{ padding: "40px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }} aria-hidden="true">
+            <i className="ti ti-circle-check" style={{ color: "var(--teal-400)" }} />
+          </div>
+          <h2 style={{ marginBottom: 8 }}>
+            {selectedRow.script} {rowLabel} mastered
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+            Held a {MASTERY_STREAK}-in-a-row streak across {MASTERY_MIN_DAYS} different days. Pick another group to
+            keep going.
           </p>
         </div>
-      ) : showOverview ? (
-        <KanaRowOverview characters={currentRow.characters} onStart={() => startRow(currentRow)} />
-      ) : current ? (
-        <KanaCard
-          kana={current.kana}
-          mode={current.mode}
-          revealed={revealed}
-          onReveal={() => setRevealed(true)}
-          onGrade={handleGrade}
-          onLearned={handleLearned}
-          progressHint={
-            current.mode === "quiz"
-              ? `streak ${current.kana.progress?.correct_streak ?? 0}/${MASTERY_STREAK} today · ${
-                  current.kana.progress?.distinct_correct_days ?? 0
-                }/${MASTERY_MIN_DAYS} days confirmed`
-              : undefined
-          }
-        />
-      ) : (
-        <p className="caption">Loading…</p>
       )}
     </div>
   );

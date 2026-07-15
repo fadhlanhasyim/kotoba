@@ -237,6 +237,33 @@ p {
   animation: rise 0.4s var(--ease) both;
 }
 
+/* Nav */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  padding: 8px 13px;
+  border-radius: var(--radius-pill);
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.nav-link .ti {
+  font-size: 17px;
+}
+
+@media (max-width: 520px) {
+  .nav-link {
+    padding: 9px;
+  }
+  .nav-link .nav-label {
+    display: none;
+  }
+  .brand-name {
+    display: none;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;

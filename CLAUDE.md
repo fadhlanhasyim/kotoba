@@ -8,7 +8,7 @@ A personal JLPT study app, starting with N5. Spaced-repetition flashcards + a pr
 
 - Next.js (App Router, TypeScript), no Tailwind — plain CSS with design tokens in `app/globals.css`
 - Supabase (Postgres + Auth), accessed client-side via `lib/supabase.ts` with the anon key; access control is enforced by Postgres row-level security, not app code
-- Auth is email magic-link only (`supabase.auth.signInWithOtp`) — no passwords anywhere in this app
+- Auth is Google OAuth only (`supabase.auth.signInWithOAuth({ provider: "google" })`) — no passwords, no email/magic-link flow. Requires a Google OAuth client configured in Google Cloud Console and enabled under Supabase Authentication → Providers → Google; this is manual dashboard setup, not something in the repo.
 
 ## Data model
 

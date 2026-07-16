@@ -59,6 +59,16 @@ Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-be
 - Mode-adaptive color tints: use `color-mix(in srgb, <color> N%, transparent)` for icon-chip/badge backgrounds so they work in both light and dark. Don't use the fixed light-ramp stops (`--coral-50`, `--teal-50`) as backgrounds in dark mode — they render as near-white blocks.
 - Sentence case everywhere; font weights 400/500/600/700 (Jakarta is a variable font).
 
+## PWA
+
+Installable, not offline-capable — this app is entirely Supabase-driven, so there's little value in real offline data access; the goal is just "add to home screen, feels native."
+
+- `app/manifest.ts` — the Next.js manifest file convention (`MetadataRoute.Manifest`), auto-wired into `<head>` as `<link rel="manifest">`. No need to add that tag manually.
+- `app/icons/{192,512,512-maskable}/route.tsx` — plain Route Handlers (not the special `icon.tsx`/`apple-icon.tsx` convention, which only wires into `<head>` `<link>` tags and can't be referenced elsewhere) returning `next/og`'s `ImageResponse`, so `manifest.ts` has stable URLs to point at. Each needs `export const dynamic = "force-static"` — without it they render dynamically on every request instead of being prerendered at build time; `export const runtime = "edge"` does **not** fix this in this Next version (see `AGENTS.md` — the caching/route-segment-config model changed in v16) and isn't needed here anyway, since the sibling `icon.tsx`/`apple-icon.tsx` files already prove `ImageResponse` works fine on the default runtime.
+- The maskable icon (`512-maskable`) has **no border radius and no padding beyond the safe zone** — the OS applies its own crop shape (circle, squircle, ...), so content must survive being cropped to the center ~80%. The other two icons round their own corners since they're displayed as-is.
+- `public/sw.js` + `components/ServiceWorkerRegister.tsx` — a deliberately minimal, network-first service worker (only exists to satisfy "Add to Home Screen" install criteria on browsers that require an active fetch handler). Don't build this out into a real offline cache — that's a bigger project this app doesn't need, given nearly everything requires a live Supabase connection anyway.
+- `viewport` export (not `metadata.themeColor` — that field is deprecated in favor of a separate `viewport` export in this Next version) sets the theme color; `metadata.appleWebApp` covers the iOS-specific standalone-mode meta tags.
+
 ## Commands
 
 ```bash

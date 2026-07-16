@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
 
-export const size = { width: 32, height: 32 };
-export const contentType = "image/png";
+// Maskable: the OS applies its own crop shape (circle, squircle, ...), so the
+// background must run full-bleed (no rounded corners here) and the glyph must
+// stay inside the safe zone — roughly the center 80% of the canvas.
+export const dynamic = "force-static";
 
-export default function Icon() {
+export async function GET() {
   return new ImageResponse(
     (
       <div
@@ -14,9 +16,8 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#d85a30",
-          borderRadius: 8,
           color: "#fffaf6",
-          fontSize: 20,
+          fontSize: 220,
           fontWeight: 700,
           fontFamily: "sans-serif",
         }}
@@ -24,6 +25,6 @@ export default function Icon() {
         こ
       </div>
     ),
-    { ...size }
+    { width: 512, height: 512 }
   );
 }

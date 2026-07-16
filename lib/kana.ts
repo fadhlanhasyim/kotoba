@@ -18,12 +18,24 @@ export interface PickedCard {
   kana: DrillKana;
 }
 
-// Gojuon rows by sort_order range (1-based, inclusive): a,ka,sa,ta,na,ha,ma,ya,ra,wa/n.
+// Rows by sort_order range (1-based, inclusive). 0-9: plain gojuon.
+// 10-14: dakuten/handakuten (voiced modifications of ka/sa/ta/ha rows).
+// 15-25: yōon (base + small ya/yu/yo glides). 26: sokuon (っ/ッ). 27: chōon (ー, katakana only —
+// hiragana simply has zero characters in that range, so buildRows skips it there).
 const ROW_BOUNDS: [number, number][] = [
   [1, 5], [6, 10], [11, 15], [16, 20], [21, 25],
   [26, 30], [31, 35], [36, 38], [39, 43], [44, 46],
+  [47, 51], [52, 56], [57, 61], [62, 66], [67, 71],
+  [72, 74], [75, 77], [78, 80], [81, 83], [84, 86],
+  [87, 89], [90, 92], [93, 95], [96, 98], [99, 101],
+  [102, 104], [105, 105], [106, 106],
 ];
-export const ROW_LABELS = ["a", "ka", "sa", "ta", "na", "ha", "ma", "ya", "ra", "wa"];
+export const ROW_LABELS = [
+  "a", "ka", "sa", "ta", "na", "ha", "ma", "ya", "ra", "wa",
+  "ga", "za", "da", "ba", "pa",
+  "kya", "sha", "cha", "nya", "hya", "mya", "rya", "gya", "ja", "bya", "pya",
+  "sokuon", "chōon",
+];
 
 export function today(now: Date): string {
   return now.toISOString().slice(0, 10);

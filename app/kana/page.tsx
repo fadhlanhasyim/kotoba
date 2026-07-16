@@ -259,6 +259,7 @@ export default function KanaDrillPage() {
               : `${selectedRow!.script} · ${rowLabel}`}
           </p>
           <KanaCard
+            key={current.kana.id}
             kana={current.kana}
             mode={current.mode}
             direction={current.direction}

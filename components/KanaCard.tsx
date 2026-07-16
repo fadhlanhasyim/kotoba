@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type { DrillKana } from "@/lib/types";
 import type { QuizDirection } from "@/lib/kana";
 import { speakJapanese } from "@/lib/tts";
+import WritingCanvas from "@/components/WritingCanvas";
+
+const REQUIRED_WRITES = 5;
 
 export default function KanaCard({
   kana,
@@ -30,6 +34,15 @@ export default function KanaCard({
   // Sokuon/chōon have no standalone sound (they modify a neighboring character) — romaji for
   // those is a label like "(sokuon)", not real romaji, so there's nothing to speak.
   const isSpeakable = !kana.romaji.startsWith("(");
+
+  // The repeat-write drill only applies to learn mode (first exposure to a character) — this
+  // mirrors writing a word on paper several times, which quiz/recall mode doesn't need.
+  // Reset when the character changes via the parent keying this component on kana.id, not an
+  // effect — a fresh mount is the idiomatic way to reset state tied to an identity change.
+  const [writeCount, setWriteCount] = useState(0);
+  const [canvasKey, setCanvasKey] = useState(0);
+
+  const writingDone = writeCount >= REQUIRED_WRITES;
 
   return (
     <div className="card rise" style={{ padding: "36px 24px 24px", textAlign: "center" }}>
@@ -92,10 +105,49 @@ export default function KanaCard({
           </div>
 
           {mode === "learn" ? (
-            <button className="btn-primary" onClick={onLearned} style={{ minWidth: 160 }}>
-              Got it, next
-              <i className="ti ti-arrow-right" style={{ marginLeft: 6, verticalAlign: "-2px" }} aria-hidden="true" />
-            </button>
+            writingDone ? (
+              <button className="btn-primary" onClick={onLearned} style={{ minWidth: 160 }}>
+                Got it, next
+                <i className="ti ti-arrow-right" style={{ marginLeft: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+              </button>
+            ) : (
+              <div>
+                <p className="caption" style={{ marginBottom: 10 }}>
+                  Write it {REQUIRED_WRITES} times to lock it in
+                </p>
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
+                  {Array.from({ length: REQUIRED_WRITES }).map((_, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: i < writeCount ? "var(--accent)" : "var(--border-strong)",
+                      }}
+                    />
+                  ))}
+                </div>
+                <WritingCanvas key={canvasKey} guideChar={kana.character} />
+                <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 18 }}>
+                  <button onClick={() => setCanvasKey((k) => k + 1)}>Clear</button>
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      setWriteCount((c) => c + 1);
+                      setCanvasKey((k) => k + 1);
+                    }}
+                  >
+                    Next rep
+                    <i
+                      className="ti ti-arrow-right"
+                      style={{ marginLeft: 6, verticalAlign: "-2px" }}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              </div>
+            )
           ) : (
             <>
               {progressHint && (

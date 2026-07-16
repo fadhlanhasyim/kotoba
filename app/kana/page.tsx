@@ -224,6 +224,7 @@ export default function KanaDrillPage() {
           <KanaCard
             kana={current.kana}
             mode={current.mode}
+            direction={current.direction}
             revealed={revealed}
             onReveal={() => setRevealed(true)}
             onGrade={handleGrade}

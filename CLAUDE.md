@@ -32,8 +32,8 @@ Kana is grouped into rows by `sort_order` via `ROW_BOUNDS` in `lib/kana.ts` — 
 Once a row is opened (`selectedRowKey`):
 
 1. A brand-new row starts with a **`KanaRowOverview`** — all its characters + romaji shown together, so the shared vowel pattern is visible before drilling. Derived (`isRowUnstarted`), not persisted, plus a client-side `dismissedRow` flag so "start row" can move past it.
-2. Characters are introduced one at a time in "learn" mode (character + romaji + mnemonic together, no guessing) — never quizzed cold.
-3. Once every character in the row has been introduced, quizzing (guess → reveal → grade) cycles among that row's unmastered characters only.
+2. Characters are introduced one at a time in "learn" mode (character + romaji + mnemonic together, no guessing) — never quizzed cold. Learn mode always prompts with the character (that's the introduction) — direction only applies to quizzing.
+3. Once every character in the row has been introduced, quizzing (guess → reveal → grade) cycles among that row's unmastered characters, and `pickInRow` also picks a random `direction` (`toRomaji` | `toKana`) per card — bidirectional recall (character→romaji *and* romaji→character) both count toward the same `correct_streak`/`distinct_correct_days`, deliberately not tracked as two separate mastery states per character. Don't split this into per-direction mastery tracking — it'd double the progress schema for a mostly-cosmetic distinction, since both directions are testing "do you know this character."
 4. When the row is fully mastered, a completion panel offers to go back to the picker — it does not auto-advance to another row.
 
 Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-before-quiz sequencing are there deliberately (kana mastery is front-loaded and testing recall on something never seen is just guessing).

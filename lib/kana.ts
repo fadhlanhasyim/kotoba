@@ -13,9 +13,12 @@ export interface KanaRow {
   characters: DrillKana[];
 }
 
+export type QuizDirection = "toRomaji" | "toKana";
+
 export interface PickedCard {
   mode: "learn" | "quiz";
   kana: DrillKana;
+  direction?: QuizDirection;
 }
 
 // Rows by sort_order range (1-based, inclusive). 0-9: plain gojuon.
@@ -101,5 +104,7 @@ export function pickInRow(row: KanaRow, excludeId: string | null): PickedCard | 
   const active = row.characters.filter((c) => c.progress && !c.progress.mastered_at);
   if (active.length === 0) return null;
   const options = active.length > 1 ? active.filter((c) => c.id !== excludeId) : active;
-  return { mode: "quiz", kana: options[Math.floor(Math.random() * options.length)] };
+  const kana = options[Math.floor(Math.random() * options.length)];
+  const direction: QuizDirection = Math.random() < 0.5 ? "toRomaji" : "toKana";
+  return { mode: "quiz", kana, direction };
 }

@@ -1,10 +1,12 @@
 "use client";
 
 import type { DrillKana } from "@/lib/types";
+import type { QuizDirection } from "@/lib/kana";
 
 export default function KanaCard({
   kana,
   mode,
+  direction,
   revealed,
   onReveal,
   onGrade,
@@ -13,6 +15,7 @@ export default function KanaCard({
 }: {
   kana: DrillKana;
   mode: "learn" | "quiz";
+  direction?: QuizDirection;
   revealed: boolean;
   onReveal: () => void;
   onGrade: (gotIt: boolean) => void;
@@ -20,6 +23,9 @@ export default function KanaCard({
   progressHint?: string;
 }) {
   const showAnswer = mode === "learn" || revealed;
+  // Learn mode always shows the character first (that's the introduction).
+  // Quiz mode can go either way: recognize (character -> romaji) or recall (romaji -> character).
+  const promptIsKana = mode === "learn" || direction !== "toKana";
 
   return (
     <div className="card rise" style={{ padding: "36px 24px 24px", textAlign: "center" }}>
@@ -29,22 +35,36 @@ export default function KanaCard({
             <>
               <i className="ti ti-sparkles" aria-hidden="true" /> new
             </>
+          ) : direction === "toKana" ? (
+            <>{kana.script} &middot; recall</>
           ) : (
             kana.script
           )}
         </span>
       </div>
 
-      <div className="jp" style={{ fontSize: 96, marginBottom: showAnswer ? 18 : 28 }}>
-        {kana.character}
-      </div>
+      {promptIsKana ? (
+        <div className="jp" style={{ fontSize: 96, marginBottom: showAnswer ? 18 : 28 }}>
+          {kana.character}
+        </div>
+      ) : (
+        <div style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: showAnswer ? 18 : 28 }}>
+          {kana.romaji}
+        </div>
+      )}
 
       {showAnswer ? (
         <>
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: 18, marginBottom: 22 }}>
-            <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 6 }}>
-              {kana.romaji}
-            </div>
+            {promptIsKana ? (
+              <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 6 }}>
+                {kana.romaji}
+              </div>
+            ) : (
+              <div className="jp" style={{ fontSize: 56, marginBottom: 6 }}>
+                {kana.character}
+              </div>
+            )}
             <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>{kana.mnemonic}</p>
           </div>
 

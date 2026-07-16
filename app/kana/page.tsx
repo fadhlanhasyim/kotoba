@@ -16,6 +16,7 @@ import {
   isRowUnstarted,
   pickInGroup,
   pickInRow,
+  pickPracticeCard,
   rowStatus,
   today,
   type ConfusableGroup,
@@ -38,6 +39,7 @@ export default function KanaDrillPage() {
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [dismissedRow, setDismissedRow] = useState<string | null>(null);
+  const [practiceMode, setPracticeMode] = useState(false);
   const [current, setCurrent] = useState<PickedCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,12 +74,14 @@ export default function KanaDrillPage() {
 
   function openRow(row: KanaRow) {
     setSelectedRowKey(row.key);
+    setPracticeMode(false);
     setCurrent(isRowUnstarted(row) ? null : pickInRow(row, null));
     setRevealed(false);
   }
 
   function openGroup(group: ConfusableGroup, members: DrillKana[]) {
     setSelectedGroupId(group.id);
+    setPracticeMode(false);
     setCurrent(pickInGroup(members, null));
     setRevealed(false);
   }
@@ -85,12 +89,21 @@ export default function KanaDrillPage() {
   function backToPicker() {
     setSelectedRowKey(null);
     setSelectedGroupId(null);
+    setPracticeMode(false);
     setCurrent(null);
   }
 
   function startRow(row: KanaRow) {
     setDismissedRow(row.key);
     setCurrent(pickInRow(row, null));
+    setRevealed(false);
+  }
+
+  // Re-drilling something already mastered — pickPracticeCard (unlike pickInRow) includes
+  // mastered members, so this is the only way back to a fully-mastered row.
+  function startPractice(row: KanaRow) {
+    setPracticeMode(true);
+    setCurrent(pickPracticeCard(row.characters, null));
     setRevealed(false);
   }
 
@@ -114,7 +127,13 @@ export default function KanaDrillPage() {
     setProgress(nextProgress);
     if (selectedRowKey) {
       const row = getRow(kana, nextProgress, selectedRowKey);
-      setCurrent(row ? pickInRow(row, previousCardId) : null);
+      if (!row) {
+        setCurrent(null);
+      } else if (practiceMode) {
+        setCurrent(pickPracticeCard(row.characters, previousCardId));
+      } else {
+        setCurrent(pickInRow(row, previousCardId));
+      }
     } else if (selectedGroupId) {
       const group = CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId);
       const members = group ? groupCharacters(kana, nextProgress, group) : [];
@@ -256,7 +275,7 @@ export default function KanaDrillPage() {
           <p className="caption" style={{ marginBottom: 16 }}>
             {isGroupDrill
               ? `look-alikes · ${selectedGroup!.characters.join(" / ")}`
-              : `${selectedRow!.script} · ${rowLabel}`}
+              : `${selectedRow!.script} · ${rowLabel}${practiceMode ? " · practice" : ""}`}
           </p>
           <KanaCard
             key={current.kana.id}
@@ -296,10 +315,14 @@ export default function KanaDrillPage() {
           <h2 style={{ marginBottom: 8 }}>
             {selectedRow!.script} {rowLabel} mastered
           </h2>
-          <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 20 }}>
             Held a {MASTERY_STREAK}-in-a-row streak across {MASTERY_MIN_DAYS} different days. Pick another group to
-            keep going.
+            keep going, or drill this one again — getting one wrong here can still demote it.
           </p>
+          <button onClick={() => startPractice(selectedRow!)}>
+            <i className="ti ti-refresh" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+            Practice this row again
+          </button>
         </div>
       )}
     </div>

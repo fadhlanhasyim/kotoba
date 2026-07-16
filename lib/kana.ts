@@ -127,6 +127,14 @@ export function pickInRow(row: KanaRow, excludeId: string | null): PickedCard | 
   return pickQuizCard(active, excludeId);
 }
 
+// For deliberately re-drilling something already mastered — includes mastered members too,
+// unlike pickInRow's active-only pool. Getting one wrong here is a genuine signal it should be
+// demoted, which handleGrade already does via the normal streak reset; no separate tracking.
+export function pickPracticeCard(characters: DrillKana[], excludeId: string | null): PickedCard | null {
+  const introduced = characters.filter((c) => c.progress);
+  return pickQuizCard(introduced, excludeId);
+}
+
 // Well-documented look-alike groups — shape confusion, not sound confusion.
 // Deliberately static (linguistic fact, not user data), same pattern as ROW_BOUNDS above.
 export interface ConfusableGroup {
@@ -169,10 +177,6 @@ export function confusableGroupStatus(members: DrillKana[]): "locked" | "ready" 
   return "ready";
 }
 
-// Includes already-mastered members too (unlike pickInRow's active-only pool) — getting a
-// mastered character wrong here against its look-alike is a genuine signal it should be
-// demoted, which handleGrade already does via the normal streak reset. No separate tracking.
 export function pickInGroup(members: DrillKana[], excludeId: string | null): PickedCard | null {
-  const introduced = members.filter((c) => c.progress);
-  return pickQuizCard(introduced, excludeId);
+  return pickPracticeCard(members, excludeId);
 }

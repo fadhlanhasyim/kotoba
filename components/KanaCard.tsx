@@ -44,6 +44,18 @@ export default function KanaCard({
 
   const writingDone = writeCount >= REQUIRED_WRITES;
 
+  // Beyond the mandatory 5, or in quiz mode entirely, writing is optional and unlimited — for
+  // extra reps right after the mandatory ones, or to write out a character during ongoing
+  // review (including one already mastered, e.g. via a row's "practice again").
+  const [practiceWriting, setPracticeWriting] = useState(false);
+  const [practiceCanvasKey, setPracticeCanvasKey] = useState(0);
+  const showOptionalPractice = mode === "quiz" || writingDone;
+
+  function togglePracticeWriting() {
+    if (!practiceWriting) setPracticeCanvasKey((k) => k + 1);
+    setPracticeWriting((v) => !v);
+  }
+
   return (
     <div className="card rise" style={{ padding: "36px 24px 24px", textAlign: "center" }}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}>
@@ -103,6 +115,20 @@ export default function KanaCard({
               </button>
             )}
           </div>
+
+          {showOptionalPractice && (
+            <div style={{ marginBottom: 20 }}>
+              <button onClick={togglePracticeWriting} style={{ fontSize: 13 }}>
+                <i className="ti ti-pencil" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+                {practiceWriting ? "Hide writing practice" : "Practice writing"}
+              </button>
+              {practiceWriting && (
+                <div style={{ marginTop: 14 }}>
+                  <WritingCanvas key={practiceCanvasKey} guideChar={kana.character} size={180} />
+                </div>
+              )}
+            </div>
+          )}
 
           {mode === "learn" ? (
             writingDone ? (

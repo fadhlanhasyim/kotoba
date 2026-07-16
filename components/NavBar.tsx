@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 
 const LINKS = [
   { href: "/", label: "dashboard", icon: "ti-layout-dashboard" },
@@ -13,19 +14,10 @@ const LINKS = [
 
 export default function NavBar() {
   const pathname = usePathname();
-  const [email, setEmail] = useState<string | null>(null);
+  const { session } = useSession();
+  const email = session?.user.email ?? null;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setEmail(data.session?.user.email ?? null);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user.email ?? null);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 import type { DrillKana, KanaCharacter, UserKanaProgress } from "@/lib/types";
 import {
   CONFUSABLE_GROUPS,
@@ -29,7 +30,8 @@ import ConfusableGroupPicker from "@/components/ConfusableGroupPicker";
 
 export default function KanaDrillPage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+  const { session, loading: authLoading } = useSession();
+  const userId = session?.user.id ?? null;
   const [kana, setKana] = useState<KanaCharacter[]>([]);
   const [progress, setProgress] = useState<Record<string, UserKanaProgress>>({});
   const [script, setScript] = useState<ScriptFilter>("both");
@@ -41,15 +43,14 @@ export default function KanaDrillPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const uid = sessionData.session?.user.id;
-      if (!uid) {
-        router.replace("/login");
-        return;
-      }
-      setUserId(uid);
+    if (authLoading) return;
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    const uid = session.user.id;
 
+    async function load() {
       const { data: kanaRows } = await supabase.from("kana_characters").select("*");
       const { data: progressRows } = await supabase
         .from("user_kana_progress")
@@ -67,7 +68,7 @@ export default function KanaDrillPage() {
       setLoading(false);
     }
     load();
-  }, [router]);
+  }, [authLoading, session, router]);
 
   function openRow(row: KanaRow) {
     setSelectedRowKey(row.key);

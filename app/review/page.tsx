@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 import { scheduleReview, type Grade } from "@/lib/srs";
 import type { Card, DueCard, UserCardProgress } from "@/lib/types";
 import FlashcardCard from "@/components/FlashcardCard";
@@ -20,22 +21,21 @@ function shuffle<T>(items: T[]): T[] {
 
 export default function ReviewPage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+  const { session, loading: authLoading } = useSession();
   const [queue, setQueue] = useState<DueCard[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user.id;
-      if (!uid) {
-        router.replace("/login");
-        return;
-      }
-      setUserId(uid);
+    if (authLoading) return;
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    const uid = session.user.id;
 
+    async function load() {
       const now = new Date();
       const { data: progress } = await supabase
         .from("user_card_progress")
@@ -72,10 +72,11 @@ export default function ReviewPage() {
       setLoading(false);
     }
     load();
-  }, [router]);
+  }, [authLoading, session, router]);
 
   async function handleGrade(grade: Grade) {
-    if (!userId) return;
+    if (!session) return;
+    const userId = session.user.id;
     const card = queue[index];
     const state = card.progress
       ? { intervalDays: card.progress.interval_days, ease: card.progress.ease, reps: card.progress.reps }

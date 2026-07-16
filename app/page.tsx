@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 import MetricCard from "@/components/MetricCard";
 import ProgressRing from "@/components/ProgressRing";
 
@@ -39,17 +40,18 @@ function computeStreak(reviewedAtDates: string[]): number {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { session, loading: authLoading } = useSession();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   useEffect(() => {
-    async function load() {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const uid = sessionData.session?.user.id;
-      if (!uid) {
-        router.replace("/login");
-        return;
-      }
+    if (authLoading) return;
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    const uid = session.user.id;
 
+    async function load() {
       const now = new Date().toISOString();
       const { count: dueToday } = await supabase
         .from("user_card_progress")
@@ -88,7 +90,7 @@ export default function DashboardPage() {
       setMetrics({ streakDays, dueToday: dueToday ?? 0, accuracyPct, n5ProgressPct });
     }
     load();
-  }, [router]);
+  }, [authLoading, session, router]);
 
   if (!metrics) return <p className="caption">Loading…</p>;
 

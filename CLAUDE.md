@@ -9,6 +9,7 @@ A personal JLPT study app, starting with N5. Spaced-repetition flashcards + a pr
 - Next.js (App Router, TypeScript), no Tailwind — plain CSS with design tokens in `app/globals.css`
 - Supabase (Postgres + Auth), accessed client-side via `lib/supabase.ts` with the anon key; access control is enforced by Postgres row-level security, not app code
 - Auth is Google OAuth only (`supabase.auth.signInWithOAuth({ provider: "google" })`) — no passwords, no email/magic-link flow. Requires a Google OAuth client configured in Google Cloud Console and enabled under Supabase Authentication → Providers → Google; this is manual dashboard setup, not something in the repo.
+- **Every page-level auth check goes through `lib/useSession.ts`'s `useSession()` hook — never call `supabase.auth.getSession()` directly in a page and redirect on the result.** A bare one-shot `getSession()` can resolve before a session finishes restoring from storage/URL on a cold load, incorrectly redirecting a signed-in user to `/login` — `NavBar` used to also listen to `onAuthStateChange` and self-correct a moment later while the page stayed stuck on `/login`, which is exactly the "navbar shows signed in, page shows sign-in" bug this hook fixes. Pattern in every page: `const { session, loading: authLoading } = useSession()`, then in the data-loading `useEffect`, `if (authLoading) return; if (!session) { router.replace("/login"); return; }`.
 
 ## Data model
 

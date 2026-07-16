@@ -38,6 +38,8 @@ Once a row is opened (`selectedRowKey`):
 
 Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-before-quiz sequencing are there deliberately (kana mastery is front-loaded and testing recall on something never seen is just guessing).
 
+**Confusable-pair drilling** (`CONFUSABLE_GROUPS` in `lib/kana.ts`, rendered by `ConfusableGroupPicker`, selected via `selectedGroupId` in `app/kana/page.tsx`): a static, hardcoded list of well-documented look-alike groups (ぬ/め, ね/れ/わ, シ/ツ, ソ/ン, etc. — shape confusion, not sound confusion), same "static linguistic fact" pattern as `ROW_BOUNDS`. The drill pool (`pickInGroup`) is every *introduced* member of the group **including already-mastered ones** — unlike `pickInRow`'s active-only pool. That's deliberate: getting a "mastered" character wrong against its look-alike here is a real signal it wasn't actually mastered, and grading it through the normal `handleGrade` path demotes it via the existing streak-reset, no separate mechanism needed. A group needs ≥2 introduced members to be drillable (`confusableGroupStatus` returns `"locked"` otherwise) — discrimination practice is meaningless with only one side learned. Don't build a separate progress-tracking table for this; it reuses `user_kana_progress` entirely.
+
 ## Scheduling
 
 `lib/srs.ts` implements a simplified SM-2: fixed learning steps for a card's first review, then ease-based intervals once it has graduated (`reps > 0`). Grades are `again | hard | good | easy`. Swap-in candidate later: FSRS, if SM-2's scheduling feels off in practice.

@@ -3,17 +3,21 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { KanaCharacter, UserKanaProgress } from "@/lib/types";
+import type { DrillKana, KanaCharacter, UserKanaProgress } from "@/lib/types";
 import {
+  CONFUSABLE_GROUPS,
   MASTERY_STREAK,
   MASTERY_MIN_DAYS,
   ROW_LABELS,
   buildRows,
   getRow,
+  groupCharacters,
   isRowUnstarted,
+  pickInGroup,
   pickInRow,
   rowStatus,
   today,
+  type ConfusableGroup,
   type KanaRow,
   type PickedCard,
   type ScriptFilter,
@@ -21,6 +25,7 @@ import {
 import KanaCard from "@/components/KanaCard";
 import KanaRowOverview from "@/components/KanaRowOverview";
 import KanaRowPicker from "@/components/KanaRowPicker";
+import ConfusableGroupPicker from "@/components/ConfusableGroupPicker";
 
 export default function KanaDrillPage() {
   const router = useRouter();
@@ -29,6 +34,7 @@ export default function KanaDrillPage() {
   const [progress, setProgress] = useState<Record<string, UserKanaProgress>>({});
   const [script, setScript] = useState<ScriptFilter>("both");
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [dismissedRow, setDismissedRow] = useState<string | null>(null);
   const [current, setCurrent] = useState<PickedCard | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -69,8 +75,15 @@ export default function KanaDrillPage() {
     setRevealed(false);
   }
 
-  function backToGroups() {
+  function openGroup(group: ConfusableGroup, members: DrillKana[]) {
+    setSelectedGroupId(group.id);
+    setCurrent(pickInGroup(members, null));
+    setRevealed(false);
+  }
+
+  function backToPicker() {
     setSelectedRowKey(null);
+    setSelectedGroupId(null);
     setCurrent(null);
   }
 
@@ -98,8 +111,16 @@ export default function KanaDrillPage() {
 
   function advance(nextProgress: Record<string, UserKanaProgress>, previousCardId: string) {
     setProgress(nextProgress);
-    const row = selectedRowKey ? getRow(kana, nextProgress, selectedRowKey) : null;
-    setCurrent(row ? pickInRow(row, previousCardId) : null);
+    if (selectedRowKey) {
+      const row = getRow(kana, nextProgress, selectedRowKey);
+      setCurrent(row ? pickInRow(row, previousCardId) : null);
+    } else if (selectedGroupId) {
+      const group = CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId);
+      const members = group ? groupCharacters(kana, nextProgress, group) : [];
+      setCurrent(pickInGroup(members, previousCardId));
+    } else {
+      setCurrent(null);
+    }
     setRevealed(false);
   }
 
@@ -162,14 +183,20 @@ export default function KanaDrillPage() {
 
   const rows = buildRows(kana, progress, script);
   const selectedRow = selectedRowKey ? getRow(kana, progress, selectedRowKey) : null;
+  const selectedGroup = selectedGroupId ? CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId) ?? null : null;
 
-  if (!selectedRow) {
+  if (!selectedRow && !selectedGroup) {
     const flatAll = rows.flatMap((r) => r.characters);
     const masteredCount = flatAll.filter((k) => k.progress?.mastered_at).length;
     const activeCount = flatAll.filter((k) => k.progress && !k.progress.mastered_at).length;
     const newCount = flatAll.length - masteredCount - activeCount;
     const recommendedKey =
       rows.find((r) => rowStatus(r) === "learning")?.key ?? rows.find((r) => rowStatus(r) === "new")?.key ?? null;
+
+    const visibleGroups = CONFUSABLE_GROUPS.filter((g) => script === "both" || g.script === script).map((group) => ({
+      group,
+      members: groupCharacters(kana, progress, group),
+    }));
 
     return (
       <div>
@@ -202,24 +229,33 @@ export default function KanaDrillPage() {
         </div>
 
         <KanaRowPicker rows={rows} recommendedKey={recommendedKey} onSelect={openRow} />
+
+        <h2 style={{ margin: "28px 0 10px" }}>Look-alikes</h2>
+        <p className="caption" style={{ marginBottom: 14 }}>
+          Characters that are easy to mix up — practice telling them apart once you&rsquo;ve learned them individually.
+        </p>
+        <ConfusableGroupPicker groups={visibleGroups} onSelect={openGroup} />
       </div>
     );
   }
 
-  const showOverview = isRowUnstarted(selectedRow) && dismissedRow !== selectedRow.key;
-  const rowLabel = `${ROW_LABELS[selectedRow.rowIndex]}-row`;
+  const isGroupDrill = !!selectedGroup;
+  const showOverview = !isGroupDrill && isRowUnstarted(selectedRow!) && dismissedRow !== selectedRow!.key;
+  const rowLabel = selectedRow ? `${ROW_LABELS[selectedRow.rowIndex]}-row` : "";
 
   return (
     <div>
-      <button onClick={backToGroups} style={{ marginBottom: 16 }}>
+      <button onClick={backToPicker} style={{ marginBottom: 16 }}>
         <i className="ti ti-arrow-left" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
-        All groups
+        Back
       </button>
 
       {current ? (
         <>
           <p className="caption" style={{ marginBottom: 16 }}>
-            {selectedRow.script} &middot; {rowLabel}
+            {isGroupDrill
+              ? `look-alikes · ${selectedGroup!.characters.join(" / ")}`
+              : `${selectedRow!.script} · ${rowLabel}`}
           </p>
           <KanaCard
             kana={current.kana}
@@ -239,14 +275,24 @@ export default function KanaDrillPage() {
           />
         </>
       ) : showOverview ? (
-        <KanaRowOverview characters={selectedRow.characters} onStart={() => startRow(selectedRow)} />
+        <KanaRowOverview characters={selectedRow!.characters} onStart={() => startRow(selectedRow!)} />
+      ) : isGroupDrill ? (
+        <div className="card rise" style={{ padding: "40px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }} aria-hidden="true">
+            <i className="ti ti-circle-check" style={{ color: "var(--teal-400)" }} />
+          </div>
+          <h2 style={{ marginBottom: 8 }}>Nothing to drill here yet</h2>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+            Learn at least two of {selectedGroup!.characters.join(", ")} from their rows first, then come back.
+          </p>
+        </div>
       ) : (
         <div className="card rise" style={{ padding: "40px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 44, marginBottom: 12 }} aria-hidden="true">
             <i className="ti ti-circle-check" style={{ color: "var(--teal-400)" }} />
           </div>
           <h2 style={{ marginBottom: 8 }}>
-            {selectedRow.script} {rowLabel} mastered
+            {selectedRow!.script} {rowLabel} mastered
           </h2>
           <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>
             Held a {MASTERY_STREAK}-in-a-row streak across {MASTERY_MIN_DAYS} different days. Pick another group to

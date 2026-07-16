@@ -2,6 +2,7 @@
 
 import type { DrillKana } from "@/lib/types";
 import type { QuizDirection } from "@/lib/kana";
+import { speakJapanese } from "@/lib/tts";
 
 export default function KanaCard({
   kana,
@@ -26,6 +27,9 @@ export default function KanaCard({
   // Learn mode always shows the character first (that's the introduction).
   // Quiz mode can go either way: recognize (character -> romaji) or recall (romaji -> character).
   const promptIsKana = mode === "learn" || direction !== "toKana";
+  // Sokuon/chōon have no standalone sound (they modify a neighboring character) — romaji for
+  // those is a label like "(sokuon)", not real romaji, so there's nothing to speak.
+  const isSpeakable = !kana.romaji.startsWith("(");
 
   return (
     <div className="card rise" style={{ padding: "36px 24px 24px", textAlign: "center" }}>
@@ -65,7 +69,26 @@ export default function KanaCard({
                 {kana.character}
               </div>
             )}
-            <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>{kana.mnemonic}</p>
+            <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: isSpeakable ? 12 : 0 }}>
+              {kana.mnemonic}
+            </p>
+            {isSpeakable && (
+              <button
+                onClick={() => speakJapanese(kana.character)}
+                aria-label="Play pronunciation"
+                style={{
+                  width: 38,
+                  height: 38,
+                  padding: 0,
+                  borderRadius: "50%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <i className="ti ti-volume-2" aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {mode === "learn" ? (

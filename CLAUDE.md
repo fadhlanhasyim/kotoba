@@ -42,6 +42,8 @@ Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-be
 
 **Quiz selection is weighted, not uniform** — `pickWeighted` in `lib/kana.ts` (used by `pickQuizCard`, which both `pickInRow` and `pickInGroup` funnel through) samples with weight `1 / (correct_streak + 1)`. A just-missed or never-quizzed character (streak 0) is ~3x more likely to come up than one on a streak of 2, without ever fully excluding confident ones — occasional review of those still matters for pushing them across the day-gate. This is a pure probability change with no rendering difference, so don't expect to verify it by screenshot; verify by simulating `pickWeighted` over many trials and checking the resulting ratios (see git history for the exact check used).
 
+**Pronunciation audio** (`lib/tts.ts`) is browser TTS (`speechSynthesis`, `lang: "ja-JP"`) — no audio files, no hosting, no schema. `speakJapanese(character)` is wired into `KanaCard` (only after `showAnswer` — never before reveal, since hearing the correct sound would leak the answer) and into `KanaRowOverview`'s character tiles. Guard on `!romaji.startsWith("(")` before offering a speaker button — sokuon/chōon have no standalone sound to speak, that's exactly what the parenthetical romaji convention already flags. Real recorded audio is a possible future upgrade but a much bigger lift (sourcing/recording + hosting); don't reach for it unless browser TTS quality genuinely becomes a problem.
+
 ## Scheduling
 
 `lib/srs.ts` implements a simplified SM-2: fixed learning steps for a card's first review, then ease-based intervals once it has graduated (`reps > 0`). Grades are `again | hard | good | easy`. Swap-in candidate later: FSRS, if SM-2's scheduling feels off in practice.

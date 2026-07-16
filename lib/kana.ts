@@ -95,10 +95,24 @@ export function rowStatus(row: KanaRow): "mastered" | "learning" | "new" {
   return "new";
 }
 
+// Weight inversely by streak: a just-missed/never-quizzed character (streak 0) is 3x more
+// likely to come up than one on a streak of 2, without ever fully excluding confident ones —
+// occasional review of those still matters for pushing them toward the day-gate.
+function pickWeighted(options: DrillKana[]): DrillKana {
+  const weights = options.map((c) => 1 / ((c.progress?.correct_streak ?? 0) + 1));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < options.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return options[i];
+  }
+  return options[options.length - 1];
+}
+
 function pickQuizCard(pool: DrillKana[], excludeId: string | null): PickedCard | null {
   if (pool.length === 0) return null;
   const options = pool.length > 1 ? pool.filter((c) => c.id !== excludeId) : pool;
-  const kana = options[Math.floor(Math.random() * options.length)];
+  const kana = pickWeighted(options);
   const direction: QuizDirection = Math.random() < 0.5 ? "toRomaji" : "toKana";
   return { mode: "quiz", kana, direction };
 }

@@ -47,6 +47,8 @@ Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-be
 
 **Repeat-write drill** (`components/WritingCanvas.tsx`, wired into `KanaCard`'s learn mode only): recognition/recall drilling alone wasn't producing durable memory — there was no *production* step, no motor encoding, the thing handwriting-on-paper naturally provides. So the first time a character appears (`mode === "learn"`), instead of an immediate "Got it, next" button, the user must freehand-write the character `REQUIRED_WRITES` (5) times over a faint guide, tracked by local `writeCount` state — no stroke-order validation, no scoring, pure self-directed repetition (matches how everything else in this app is self-assessed).
 
+**Learn mode's layout is deliberately compact** (small character+romaji+speaker header row instead of the quiz mode's stacked 96px hero): the user is mobile-first, and the whole point of learn mode is writing every rep — the canvas and "Next rep" button must fit on a phone screen without scrolling. The canvas's faint guide glyph already shows the character full-size, so a big intro display above it is redundant. Don't "unify" learn mode back onto quiz mode's hero layout.
+
 Two follow-on gaps, both solved without a second progress-tracking mechanism:
 
 - **Writing beyond the mandatory 5, or during quiz/recall at all**: `KanaCard` has a second, independent "Practice writing" toggle (`practiceWriting` state) — unlimited, optional, shown whenever `mode === "quiz"` or the mandatory reps are already done. It's just a free draw pad; it doesn't affect grading or `writeCount`.

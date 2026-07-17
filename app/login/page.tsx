@@ -74,7 +74,7 @@ export default function LoginPage() {
       />
 
       <div
-        className="card rise"
+        className="card rise login-card"
         style={{ position: "relative", maxWidth: 420, width: "100%", padding: "36px 28px", textAlign: "center" }}
       >
         <span

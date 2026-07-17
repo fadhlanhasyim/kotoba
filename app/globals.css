@@ -186,6 +186,21 @@ button:active,
   }
 }
 
+/* On narrow screens the card would cover the whole glyph layer — drop the
+   card chrome so the ambience shows through behind the login content. */
+@media (max-width: 520px) {
+  .card.login-card {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+  .login-glyph {
+    opacity: 0.1;
+  }
+}
+
 input {
   font-family: inherit;
   font-size: 15px;

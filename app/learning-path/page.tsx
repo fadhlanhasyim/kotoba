@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 import { computeKanaPhases, recommend, type PhaseStats } from "@/lib/learningPath";
 import type { KanaCharacter, UserKanaProgress } from "@/lib/types";
+import LoadingState from "@/components/LoadingState";
 
 interface ReviewPhase {
   id: "review";
@@ -137,7 +138,7 @@ export default function LearningPathPage() {
     load();
   }, [authLoading, session, router]);
 
-  if (!phases || !review) return <p className="caption">Loading…</p>;
+  if (!phases || !review) return <LoadingState />;
 
   const rec = recommend(phases, review.learnedCount > 0);
 

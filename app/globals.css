@@ -186,6 +186,29 @@ button:active,
   }
 }
 
+/* Loading state: the brand mark gently breathing */
+.loading-mark {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark {
+    animation: none;
+  }
+}
+
 /* On narrow screens the card would cover the whole glyph layer — drop the
    card chrome so the ambience shows through behind the login content. */
 @media (max-width: 520px) {

@@ -87,6 +87,7 @@ Two follow-on gaps, both solved without a second progress-tracking mechanism:
 - **Icons**: Tabler webfont, installed as the `@tabler/icons-webfont` npm dep and imported in `app/layout.tsx` (NOT from a CDN — the jsdelivr CDN gets ORB-blocked cross-origin). Usage: `<i className="ti ti-name" />`. Selectors in the dist CSS use single-colon `:before`.
 - Mode-adaptive color tints: use `color-mix(in srgb, <color> N%, transparent)` for icon-chip/badge backgrounds so they work in both light and dark. Don't use the fixed light-ramp stops (`--coral-50`, `--teal-50`) as backgrounds in dark mode — they render as near-white blocks.
 - Sentence case everywhere; font weights 400/500/600/700 (Jakarta is a variable font).
+- Page loading states use `<LoadingState />` (`components/LoadingState.tsx`) — the breathing brand mark, centered — not a bare "Loading…" paragraph.
 
 ## PWA
 

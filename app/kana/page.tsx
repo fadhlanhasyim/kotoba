@@ -28,6 +28,7 @@ import KanaCard from "@/components/KanaCard";
 import KanaRowOverview from "@/components/KanaRowOverview";
 import KanaRowPicker from "@/components/KanaRowPicker";
 import ConfusableGroupPicker from "@/components/ConfusableGroupPicker";
+import LoadingState from "@/components/LoadingState";
 
 export default function KanaDrillPage() {
   const router = useRouter();
@@ -203,7 +204,7 @@ export default function KanaDrillPage() {
     await upsertProgress(current.kana.id, updated, nowIso);
   }
 
-  if (loading) return <p className="caption">Loading kana…</p>;
+  if (loading) return <LoadingState label="Loading kana…" />;
 
   const rows = buildRows(kana, progress, script);
   const selectedRow = selectedRowKey ? getRow(kana, progress, selectedRowKey) : null;

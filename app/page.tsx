@@ -7,6 +7,7 @@ import { useSession } from "@/lib/useSession";
 import { computeKanaPhases, recommend, type PhaseStats, type Recommendation } from "@/lib/learningPath";
 import type { KanaCharacter, UserKanaProgress } from "@/lib/types";
 import DashboardView, { type DashboardMetrics } from "@/components/DashboardView";
+import LoadingState from "@/components/LoadingState";
 
 function computeStreak(reviewedAtDates: string[]): number {
   const days = new Set(reviewedAtDates.map((d) => new Date(d).toDateString()));
@@ -120,7 +121,7 @@ export default function DashboardPage() {
     load();
   }, [authLoading, session, router]);
 
-  if (!data) return <p className="caption">Loading…</p>;
+  if (!data) return <LoadingState />;
 
   return <DashboardView metrics={data.metrics} phases={data.phases} rec={data.rec} />;
 }

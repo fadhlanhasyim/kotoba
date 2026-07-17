@@ -7,6 +7,7 @@ import { useSession } from "@/lib/useSession";
 import { scheduleReview, type Grade } from "@/lib/srs";
 import type { Card, DueCard, UserCardProgress } from "@/lib/types";
 import FlashcardCard from "@/components/FlashcardCard";
+import LoadingState from "@/components/LoadingState";
 
 const NEW_CARDS_PER_SESSION = 10;
 
@@ -109,7 +110,7 @@ export default function ReviewPage() {
     setIndex((i) => i + 1);
   }
 
-  if (loading) return <p className="caption">Loading review queue…</p>;
+  if (loading) return <LoadingState label="Loading review queue…" />;
 
   if (index >= queue.length) {
     return (

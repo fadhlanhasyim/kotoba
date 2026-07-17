@@ -225,29 +225,52 @@ export default function KanaDrillPage() {
 
     return (
       <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <h1>Kana drill</h1>
-          <p className="caption">
-            {masteredCount} mastered &middot; {activeCount} learning &middot; {newCount} new
-          </p>
+        <div style={{ marginBottom: 18 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
+            <h1>Kana drill</h1>
+            <p className="caption">
+              {masteredCount} mastered &middot; {activeCount} learning &middot; {newCount} new
+            </p>
+          </div>
+          <div
+            aria-hidden="true"
+            style={{
+              display: "flex",
+              height: 6,
+              borderRadius: "var(--radius-pill)",
+              background: "var(--border)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${(masteredCount / Math.max(1, flatAll.length)) * 100}%`,
+                background: "var(--teal-400)",
+                transition: "width 0.4s var(--ease)",
+              }}
+            />
+            <div
+              style={{
+                width: `${(activeCount / Math.max(1, flatAll.length)) * 100}%`,
+                background: "var(--accent)",
+                transition: "width 0.4s var(--ease)",
+              }}
+            />
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div className="segmented" style={{ marginBottom: 22 }}>
           {(["hiragana", "katakana", "both"] as ScriptFilter[]).map((s) => (
-            <button
-              key={s}
-              onClick={() => setScript(s)}
-              style={{ borderBottom: script === s ? "2px solid var(--accent)" : "2px solid transparent" }}
-            >
+            <button key={s} onClick={() => setScript(s)} className={script === s ? "active" : undefined}>
               {s}
             </button>
           ))}

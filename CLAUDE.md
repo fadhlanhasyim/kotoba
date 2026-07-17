@@ -88,6 +88,9 @@ Two follow-on gaps, both solved without a second progress-tracking mechanism:
 - Mode-adaptive color tints: use `color-mix(in srgb, <color> N%, transparent)` for icon-chip/badge backgrounds so they work in both light and dark. Don't use the fixed light-ramp stops (`--coral-50`, `--teal-50`) as backgrounds in dark mode — they render as near-white blocks.
 - Sentence case everywhere; font weights 400/500/600/700 (Jakarta is a variable font).
 - Page loading states use `<LoadingState />` (`components/LoadingState.tsx`) — the breathing brand mark, centered — not a bare "Loading…" paragraph.
+- `.segmented` (globals.css) is the pill segmented control (script filter on the kana page) — active option gets `.active` (accent-bg tint).
+- **`button`/`.btn` is `display: inline-flex; align-items: center; justify-content: center`** (needed so `Link`-wrapped `.btn` spans size correctly). Consequence: any button laid out as a flex *column* card (KanaRowPicker's RowCard, ConfusableGroupPicker) must set `alignItems: "stretch"` inline or its children get horizontally centered.
+- The kana picker groups rows into pedagogical sections (`SECTIONS` in `KanaRowPicker.tsx`: gojuon / dakuten / yōon / sokuon+chōon — a finer split of the learning path's core/extended ranges) and colors each character by its own progress (`charColor`: teal mastered, coral learning, ink untouched — shared with ConfusableGroupPicker). Keep row-level status *and* per-character state; a row card should be scannable without opening it.
 
 ## PWA
 

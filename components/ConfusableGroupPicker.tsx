@@ -2,6 +2,7 @@
 
 import type { DrillKana } from "@/lib/types";
 import { confusableGroupStatus, type ConfusableGroup } from "@/lib/kana";
+import { charColor } from "@/components/KanaRowPicker";
 
 const STATUS_META = {
   ready: { color: "var(--accent)", text: "ready to drill" },
@@ -32,6 +33,7 @@ export default function ConfusableGroupPicker({
             style={{
               display: "flex",
               flexDirection: "column",
+              alignItems: "stretch",
               gap: 10,
               padding: "16px",
               textAlign: "left",
@@ -47,7 +49,9 @@ export default function ConfusableGroupPicker({
           >
             <div className="jp" style={{ fontSize: 26, display: "flex", gap: 10 }}>
               {members.map((c) => (
-                <span key={c.id}>{c.character}</span>
+                <span key={c.id} style={{ color: charColor(c) }}>
+                  {c.character}
+                </span>
               ))}
             </div>
             <span style={{ fontSize: 13, color: meta.color, fontWeight: 500 }}>{meta.text}</span>

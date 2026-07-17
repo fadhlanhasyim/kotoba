@@ -171,18 +171,6 @@ export default function DashboardPage() {
 
       <div>
         <h3 className="caption" style={{ marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          N5 vocab
-        </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
-          <MetricCard icon="ti-flame" color="var(--coral-400)" label="day streak" value={`${metrics.streakDays}`} />
-          <MetricCard icon="ti-cards" color="var(--blue-500)" label="due today" value={`${metrics.dueToday}`} />
-          <MetricCard icon="ti-target-arrow" color="var(--teal-400)" label="accuracy" value={`${metrics.accuracyPct}%`} />
-          <MetricCard icon="ti-chart-bar" color="var(--amber-500)" label="N5 learned" value={`${metrics.n5ProgressPct}%`} />
-        </div>
-      </div>
-
-      <div>
-        <h3 className="caption" style={{ marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
           Kana
         </h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
@@ -193,6 +181,18 @@ export default function DashboardPage() {
             label="mastered"
             value={`${metrics.kanaMasteredCount}/${metrics.kanaTotal}`}
           />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="caption" style={{ marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          N5 vocab
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+          <MetricCard icon="ti-flame" color="var(--coral-400)" label="day streak" value={`${metrics.streakDays}`} />
+          <MetricCard icon="ti-cards" color="var(--blue-500)" label="due today" value={`${metrics.dueToday}`} />
+          <MetricCard icon="ti-target-arrow" color="var(--teal-400)" label="accuracy" value={`${metrics.accuracyPct}%`} />
+          <MetricCard icon="ti-chart-bar" color="var(--amber-500)" label="N5 learned" value={`${metrics.n5ProgressPct}%`} />
         </div>
       </div>
     </div>

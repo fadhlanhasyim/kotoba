@@ -118,6 +118,9 @@ a {
 /* Buttons */
 button,
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -155,6 +158,32 @@ button:active,
   background: var(--accent-strong);
   border-color: transparent;
   box-shadow: var(--shadow-md);
+}
+
+/* Login page ambience: oversized kana drifting behind the card */
+.login-glyph {
+  position: absolute;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0.07;
+  user-select: none;
+  pointer-events: none;
+  animation: glyph-float 7s ease-in-out infinite alternate;
+}
+
+@keyframes glyph-float {
+  from {
+    transform: translateY(6px) rotate(var(--tilt, 0deg));
+  }
+  to {
+    transform: translateY(-12px) rotate(var(--tilt, 0deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-glyph {
+    animation: none;
+  }
 }
 
 input {

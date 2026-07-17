@@ -91,7 +91,10 @@ export default function NavBar() {
         </div>
       </div>
 
-      {email ? (
+      {/* No signed-out CTA here: every page already redirects to /login when
+          unauthenticated, so a navbar "Sign in" button could only ever appear
+          on the login page itself — pointing at the page you're already on. */}
+      {email && (
         <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
@@ -140,10 +143,6 @@ export default function NavBar() {
             </div>
           )}
         </div>
-      ) : (
-        <Link href="/login" style={{ flexShrink: 0 }}>
-          <span className="btn btn-primary">Sign in</span>
-        </Link>
       )}
     </nav>
   );

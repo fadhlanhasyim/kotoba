@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DrillKana } from "@/lib/types";
 import type { QuizDirection } from "@/lib/kana";
 import { speakJapanese } from "@/lib/tts";
 import WritingCanvas from "@/components/WritingCanvas";
 
 const REQUIRED_WRITES = 5;
+const WRITING_DEFAULT_KEY = "kotoba:writingPracticeDefault";
 
 export default function KanaCard({
   kana,
@@ -51,9 +52,26 @@ export default function KanaCard({
   const [practiceCanvasKey, setPracticeCanvasKey] = useState(0);
   const showOptionalPractice = mode === "quiz" || writingDone;
 
+  // Default to your last choice instead of making you click every single card — must default
+  // to false on the very first render (matching server output) and apply the remembered value
+  // post-mount, same hydration-safety reasoning as WritingCanvas's devicePixelRatio read below.
+  useEffect(() => {
+    if (!showOptionalPractice) return;
+    if (localStorage.getItem(WRITING_DEFAULT_KEY) === "open") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPracticeWriting(true);
+    }
+  }, [showOptionalPractice]);
+
   function togglePracticeWriting() {
-    if (!practiceWriting) setPracticeCanvasKey((k) => k + 1);
-    setPracticeWriting((v) => !v);
+    const next = !practiceWriting;
+    if (next) setPracticeCanvasKey((k) => k + 1);
+    setPracticeWriting(next);
+    try {
+      localStorage.setItem(WRITING_DEFAULT_KEY, next ? "open" : "closed");
+    } catch {
+      // private-browsing/storage-disabled — just skip remembering, not worth surfacing
+    }
   }
 
   return (
@@ -124,7 +142,7 @@ export default function KanaCard({
               </button>
               {practiceWriting && (
                 <div style={{ marginTop: 14 }}>
-                  <WritingCanvas key={practiceCanvasKey} guideChar={kana.character} size={180} />
+                  <WritingCanvas key={practiceCanvasKey} guideChar={kana.character} />
                 </div>
               )}
             </div>

@@ -6,15 +6,18 @@ import { speakJapanese } from "@/lib/tts";
 export default function KanaRowOverview({
   characters,
   onStart,
+  onClose,
 }: {
   characters: DrillKana[];
-  onStart: () => void;
+  onStart?: () => void;
+  onClose?: () => void;
 }) {
   return (
     <div className="card rise" style={{ padding: "32px 24px 24px", textAlign: "center" }}>
       <div style={{ marginBottom: 24, display: "flex", justifyContent: "center" }}>
         <span className="badge">
-          <i className="ti ti-stack-2" aria-hidden="true" /> {characters[0]?.script} · new group
+          <i className="ti ti-stack-2" aria-hidden="true" /> {characters[0]?.script} &middot;{" "}
+          {onStart ? "new group" : "reference"}
         </span>
       </div>
 
@@ -58,11 +61,17 @@ export default function KanaRowOverview({
       </div>
 
       <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 20, maxWidth: 420, margin: "0 auto 20px" }}>
-        Same vowel pattern, one new consonant sound. Tap a tile to hear it, then drill them one at a time.
+        {onStart
+          ? "Same vowel pattern, one new consonant sound. Tap a tile to hear it, then drill them one at a time."
+          : "Tap a tile to hear it."}
       </p>
-      <button className="btn-primary" onClick={onStart} style={{ minWidth: 180 }}>
-        Start this group
-      </button>
+      {onStart ? (
+        <button className="btn-primary" onClick={onStart} style={{ minWidth: 180 }}>
+          Start this group
+        </button>
+      ) : (
+        onClose && <button onClick={onClose}>Close</button>
+      )}
     </div>
   );
 }

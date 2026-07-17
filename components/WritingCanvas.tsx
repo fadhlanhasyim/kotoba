@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function WritingCanvas({ guideChar, size = 220 }: { guideChar: string; size?: number }) {
+export default function WritingCanvas({ guideChar, maxSize = 320 }: { guideChar: string; maxSize?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -17,7 +17,12 @@ export default function WritingCanvas({ guideChar, size = 220 }: { guideChar: st
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDpr(window.devicePixelRatio || 1);
   }, []);
-  const pixelSize = Math.round(size * dpr);
+  // The canvas buffer is a fixed maxSize*dpr pixels regardless of how large it's actually
+  // displayed — the CSS below scales it down on narrow screens via min(maxSize, 100%), and
+  // pointerPos() below already maps pointer coordinates through the rendered box size, so this
+  // stays crisp without needing a ResizeObserver to re-buffer on resize (which would also
+  // clear whatever's been drawn).
+  const pixelSize = Math.round(maxSize * dpr);
 
   function pointerPos(e: React.PointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current!;
@@ -56,8 +61,18 @@ export default function WritingCanvas({ guideChar, size = 220 }: { guideChar: st
     last.current = null;
   }
 
+  const boxSize = `min(${maxSize}px, 100%)`;
+
   return (
-    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+    <div
+      style={{
+        position: "relative",
+        width: boxSize,
+        aspectRatio: "1 / 1",
+        margin: "0 auto",
+        overflow: "hidden", // guard: guide glyph is sized for maxSize, box can shrink slightly below it on narrow screens
+      }}
+    >
       <div
         className="jp"
         aria-hidden="true"
@@ -67,7 +82,7 @@ export default function WritingCanvas({ guideChar, size = 220 }: { guideChar: st
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: size * 0.72,
+          fontSize: maxSize * 0.7,
           color: "var(--text-muted)",
           opacity: 0.28,
           pointerEvents: "none",
@@ -85,8 +100,8 @@ export default function WritingCanvas({ guideChar, size = 220 }: { guideChar: st
         onPointerLeave={onPointerUp}
         style={{
           position: "relative",
-          width: size,
-          height: size,
+          width: "100%",
+          height: "100%",
           color: "var(--foreground)",
           borderRadius: "var(--radius)",
           border: "1px solid var(--border)",

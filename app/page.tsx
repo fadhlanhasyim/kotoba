@@ -21,6 +21,9 @@ interface Metrics {
   dueToday: number;
   accuracyPct: number;
   n5ProgressPct: number;
+  kanaStreakDays: number;
+  kanaMasteredCount: number;
+  kanaTotal: number;
 }
 
 function computeStreak(reviewedAtDates: string[]): number {
@@ -87,7 +90,30 @@ export default function DashboardPage() {
         }
       }
 
-      setMetrics({ streakDays, dueToday: dueToday ?? 0, accuracyPct, n5ProgressPct });
+      const { data: kanaProgressRows } = await supabase
+        .from("user_kana_progress")
+        .select("mastered_at, last_seen_at")
+        .eq("user_id", uid);
+      const { count: kanaTotal } = await supabase
+        .from("kana_characters")
+        .select("id", { count: "exact", head: true });
+
+      const rows = kanaProgressRows ?? [];
+      const kanaMasteredCount = rows.filter((r) => r.mastered_at).length;
+      // No per-event log for kana (unlike review_logs for vocab) — last_seen_at per character is
+      // overwritten on each touch, so the set of distinct dates across all 211 rows is a good-
+      // enough proxy for "days practiced," not a precise audit log.
+      const kanaStreakDays = computeStreak(rows.map((r) => r.last_seen_at).filter((d): d is string => !!d));
+
+      setMetrics({
+        streakDays,
+        dueToday: dueToday ?? 0,
+        accuracyPct,
+        n5ProgressPct,
+        kanaStreakDays,
+        kanaMasteredCount,
+        kanaTotal: kanaTotal ?? 0,
+      });
     }
     load();
   }, [authLoading, session, router]);
@@ -133,15 +159,41 @@ export default function DashboardPage() {
             <Link href="/kana">
               <span className="btn">Practice kana</span>
             </Link>
+            <Link href="/learning-path">
+              <span className="btn">
+                <i className="ti ti-compass" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+                Learning path
+              </span>
+            </Link>
           </div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
-        <MetricCard icon="ti-flame" color="var(--coral-400)" label="day streak" value={`${metrics.streakDays}`} />
-        <MetricCard icon="ti-cards" color="var(--blue-500)" label="due today" value={`${metrics.dueToday}`} />
-        <MetricCard icon="ti-target-arrow" color="var(--teal-400)" label="accuracy" value={`${metrics.accuracyPct}%`} />
-        <MetricCard icon="ti-chart-bar" color="var(--amber-500)" label="N5 learned" value={`${metrics.n5ProgressPct}%`} />
+      <div>
+        <h3 className="caption" style={{ marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          N5 vocab
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+          <MetricCard icon="ti-flame" color="var(--coral-400)" label="day streak" value={`${metrics.streakDays}`} />
+          <MetricCard icon="ti-cards" color="var(--blue-500)" label="due today" value={`${metrics.dueToday}`} />
+          <MetricCard icon="ti-target-arrow" color="var(--teal-400)" label="accuracy" value={`${metrics.accuracyPct}%`} />
+          <MetricCard icon="ti-chart-bar" color="var(--amber-500)" label="N5 learned" value={`${metrics.n5ProgressPct}%`} />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="caption" style={{ marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          Kana
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+          <MetricCard icon="ti-flame" color="var(--coral-400)" label="day streak" value={`${metrics.kanaStreakDays}`} />
+          <MetricCard
+            icon="ti-language-hiragana"
+            color="var(--teal-400)"
+            label="mastered"
+            value={`${metrics.kanaMasteredCount}/${metrics.kanaTotal}`}
+          />
+        </div>
       </div>
     </div>
   );

@@ -40,6 +40,7 @@ export default function KanaDrillPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [dismissedRow, setDismissedRow] = useState<string | null>(null);
   const [practiceMode, setPracticeMode] = useState(false);
+  const [showReference, setShowReference] = useState(false);
   const [current, setCurrent] = useState<PickedCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -75,6 +76,7 @@ export default function KanaDrillPage() {
   function openRow(row: KanaRow) {
     setSelectedRowKey(row.key);
     setPracticeMode(false);
+    setShowReference(false);
     setCurrent(isRowUnstarted(row) ? null : pickInRow(row, null));
     setRevealed(false);
   }
@@ -82,6 +84,7 @@ export default function KanaDrillPage() {
   function openGroup(group: ConfusableGroup, members: DrillKana[]) {
     setSelectedGroupId(group.id);
     setPracticeMode(false);
+    setShowReference(false);
     setCurrent(pickInGroup(members, null));
     setRevealed(false);
   }
@@ -90,6 +93,7 @@ export default function KanaDrillPage() {
     setSelectedRowKey(null);
     setSelectedGroupId(null);
     setPracticeMode(false);
+    setShowReference(false);
     setCurrent(null);
   }
 
@@ -265,12 +269,22 @@ export default function KanaDrillPage() {
 
   return (
     <div>
-      <button onClick={backToPicker} style={{ marginBottom: 16 }}>
-        <i className="ti ti-arrow-left" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
-        Back
-      </button>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <button onClick={backToPicker}>
+          <i className="ti ti-arrow-left" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+          Back
+        </button>
+        {selectedRow && !showOverview && (
+          <button onClick={() => setShowReference((v) => !v)}>
+            <i className="ti ti-eye" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+            {showReference ? "Hide group" : "View group"}
+          </button>
+        )}
+      </div>
 
-      {current ? (
+      {showReference && selectedRow ? (
+        <KanaRowOverview characters={selectedRow.characters} onClose={() => setShowReference(false)} />
+      ) : current ? (
         <>
           <p className="caption" style={{ marginBottom: 16 }}>
             {isGroupDrill

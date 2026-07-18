@@ -276,47 +276,48 @@ export default function KanaCard({
   }
 
   return (
-    <div className="card rise" style={{ padding: "36px 24px 24px", textAlign: "center" }}>
-      <div style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}>
+    <div className="card rise" style={{ padding: showAnswer ? "20px" : "36px 24px 24px", textAlign: "center" }}>
+      <div style={{ marginBottom: showAnswer ? 12 : 20, display: "flex", justifyContent: "center" }}>
         <span className="badge badge-neutral">
           {direction === "toKana" ? <>{kana.script} &middot; recall</> : kana.script}
         </span>
       </div>
 
-      {promptIsKana ? (
-        <div className="jp" style={{ fontSize: 96, marginBottom: showAnswer ? 18 : 28 }}>
-          {kana.character}
-        </div>
-      ) : (
-        <div style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: showAnswer ? 18 : 28 }}>
-          {kana.romaji}
-        </div>
-      )}
-
-      {showAnswer ? (
+      {!showAnswer ? (
         <>
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 18, marginBottom: 22 }}>
-            {promptIsKana ? (
-              <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 6 }}>
-                {kana.romaji}
-              </div>
-            ) : (
-              <div className="jp" style={{ fontSize: 56, marginBottom: 6 }}>
-                {kana.character}
-              </div>
-            )}
-            {editingMnemonic ? (
-              mnemonicEditor
-            ) : (
-              <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: isSpeakable ? 12 : 0 }}>
-                {shownMnemonic}
-                {mnemonicEditButton}
-              </p>
-            )}
+          {promptIsKana ? (
+            <div className="jp" style={{ fontSize: 96, marginBottom: 28 }}>
+              {kana.character}
+            </div>
+          ) : (
+            <div style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 28 }}>
+              {kana.romaji}
+            </div>
+          )}
+          <button className="btn-primary" onClick={onReveal} style={{ minWidth: 160 }}>
+            Show answer
+          </button>
+        </>
+      ) : (
+        <>
+          {/* Revealed: both sides are known now, so the big prompt + divider +
+              big answer collapse into one compact row — grading stays on screen
+              even with the writing pad open. Same reasoning as learn mode. */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 6 }}>
+            <span className="jp" style={{ fontSize: 48, lineHeight: 1.15 }}>
+              {kana.character}
+            </span>
+            <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" }}>{kana.romaji}</span>
             {speakerButton}
           </div>
-
-          {practiceToggle}
+          {editingMnemonic ? (
+            mnemonicEditor
+          ) : (
+            <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 14 }}>
+              {shownMnemonic}
+              {mnemonicEditButton}
+            </p>
+          )}
 
           {progressHint && (
             <p className="caption" style={{ marginBottom: 12 }}>
@@ -337,11 +338,13 @@ export default function KanaCard({
               Got it
             </button>
           </div>
+
+          {showOptionalPractice && (
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+              {practiceToggle}
+            </div>
+          )}
         </>
-      ) : (
-        <button className="btn-primary" onClick={onReveal} style={{ minWidth: 160 }}>
-          Show answer
-        </button>
       )}
     </div>
   );

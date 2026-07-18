@@ -355,11 +355,13 @@ export default function KanaDrillPage() {
             onLearned={handleLearned}
             onSaveMnemonic={saveMnemonic}
             progressHint={
-              current.mode === "quiz"
-                ? `streak ${current.kana.progress?.correct_streak ?? 0}/${MASTERY_STREAK} today · ${
-                    current.kana.progress?.distinct_correct_days ?? 0
-                  }/${MASTERY_MIN_DAYS} days confirmed`
-                : undefined
+              current.mode !== "quiz"
+                ? undefined
+                : current.kana.progress?.mastered_at
+                  ? "mastered — practice keeps it sharp"
+                  : `streak ${current.kana.progress?.correct_streak ?? 0}/${MASTERY_STREAK} today · ${
+                      current.kana.progress?.distinct_correct_days ?? 0
+                    }/${MASTERY_MIN_DAYS} days confirmed`
             }
           />
         </>

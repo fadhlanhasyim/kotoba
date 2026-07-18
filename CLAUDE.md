@@ -51,6 +51,8 @@ Don't fold kana into the SM-2 `cards` flow — the row grouping and the learn-be
 
 **Learn mode's layout is deliberately compact** (small character+romaji+speaker header row instead of the quiz mode's stacked 96px hero): the user is mobile-first, and the whole point of learn mode is writing every rep — the canvas and "Next rep" button must fit on a phone screen without scrolling. The canvas's faint guide glyph already shows the character full-size, so a big intro display above it is redundant. Don't "unify" learn mode back onto quiz mode's hero layout.
 
+**Quiz mode collapses to the same compact row once revealed.** Pre-reveal keeps the 96px hero (the big prompt *is* the quiz, and the writing pad must not render pre-reveal — its guide glyph would leak the answer in recall mode). Post-reveal, both sides are known, so it's character+romaji+speaker in one row, mnemonic, hint, then **grade buttons immediately** — the optional writing pad goes last, below a divider. Grading is the primary action and must never sit below the canvas fold. The mastered-in-practice hint is "mastered — practice keeps it sharp", not raw streak numbers (a mastered character's streak exceeds the caps and reads as a bug).
+
 Two follow-on gaps, both solved without a second progress-tracking mechanism:
 
 - **Writing beyond the mandatory 5, or during quiz/recall at all**: `KanaCard` has a second, independent "Practice writing" toggle (`practiceWriting` state) — unlimited, optional, shown whenever `mode === "quiz"` or the mandatory reps are already done. It's just a free draw pad; it doesn't affect grading or `writeCount`.

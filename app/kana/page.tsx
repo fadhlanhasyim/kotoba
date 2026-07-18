@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
-import type { DrillKana, KanaCharacter, UserKanaProgress } from "@/lib/types";
+import type { DrillKana, KanaCharacter, UserKanaNote, UserKanaProgress } from "@/lib/types";
 import {
   CONFUSABLE_GROUPS,
   MASTERY_STREAK,
@@ -36,6 +36,7 @@ export default function KanaDrillPage() {
   const userId = session?.user.id ?? null;
   const [kana, setKana] = useState<KanaCharacter[]>([]);
   const [progress, setProgress] = useState<Record<string, UserKanaProgress>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [script, setScript] = useState<ScriptFilter>("both");
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -60,19 +61,47 @@ export default function KanaDrillPage() {
         .from("user_kana_progress")
         .select("*")
         .eq("user_id", uid);
+      const { data: noteRows } = await supabase.from("user_kana_notes").select("*").eq("user_id", uid);
 
       const kanaList = (kanaRows ?? []) as KanaCharacter[];
       const progressMap: Record<string, UserKanaProgress> = {};
       for (const row of (progressRows ?? []) as UserKanaProgress[]) {
         progressMap[row.kana_id] = row;
       }
+      const notesMap: Record<string, string> = {};
+      for (const row of (noteRows ?? []) as UserKanaNote[]) {
+        notesMap[row.kana_id] = row.mnemonic;
+      }
 
       setKana(kanaList);
       setProgress(progressMap);
+      setNotes(notesMap);
       setLoading(false);
     }
     load();
   }, [authLoading, session, router]);
+
+  // The kana list with personal mnemonics attached — everything below (rows,
+  // drills, groups) is built from this so an override shows everywhere.
+  const kanaMerged = kana.map((k) => (notes[k.id] ? { ...k, custom_mnemonic: notes[k.id] } : k));
+
+  async function saveMnemonic(kanaId: string, mnemonic: string | null) {
+    if (!userId) return;
+    if (mnemonic) {
+      setNotes((prev) => ({ ...prev, [kanaId]: mnemonic }));
+      await supabase.from("user_kana_notes").upsert(
+        { user_id: userId, kana_id: kanaId, mnemonic, updated_at: new Date().toISOString() },
+        { onConflict: "user_id,kana_id" }
+      );
+    } else {
+      setNotes((prev) => {
+        const next = { ...prev };
+        delete next[kanaId];
+        return next;
+      });
+      await supabase.from("user_kana_notes").delete().eq("user_id", userId).eq("kana_id", kanaId);
+    }
+  }
 
   function openRow(row: KanaRow) {
     setSelectedRowKey(row.key);
@@ -131,7 +160,7 @@ export default function KanaDrillPage() {
   function advance(nextProgress: Record<string, UserKanaProgress>, previousCardId: string) {
     setProgress(nextProgress);
     if (selectedRowKey) {
-      const row = getRow(kana, nextProgress, selectedRowKey);
+      const row = getRow(kanaMerged, nextProgress, selectedRowKey);
       if (!row) {
         setCurrent(null);
       } else if (practiceMode) {
@@ -141,7 +170,7 @@ export default function KanaDrillPage() {
       }
     } else if (selectedGroupId) {
       const group = CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId);
-      const members = group ? groupCharacters(kana, nextProgress, group) : [];
+      const members = group ? groupCharacters(kanaMerged, nextProgress, group) : [];
       setCurrent(pickInGroup(members, previousCardId));
     } else {
       setCurrent(null);
@@ -206,8 +235,8 @@ export default function KanaDrillPage() {
 
   if (loading) return <LoadingState label="Loading kana…" />;
 
-  const rows = buildRows(kana, progress, script);
-  const selectedRow = selectedRowKey ? getRow(kana, progress, selectedRowKey) : null;
+  const rows = buildRows(kanaMerged, progress, script);
+  const selectedRow = selectedRowKey ? getRow(kanaMerged, progress, selectedRowKey) : null;
   const selectedGroup = selectedGroupId ? CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId) ?? null : null;
 
   if (!selectedRow && !selectedGroup) {
@@ -220,7 +249,7 @@ export default function KanaDrillPage() {
 
     const visibleGroups = CONFUSABLE_GROUPS.filter((g) => script === "both" || g.script === script).map((group) => ({
       group,
-      members: groupCharacters(kana, progress, group),
+      members: groupCharacters(kanaMerged, progress, group),
     }));
 
     return (
@@ -324,6 +353,7 @@ export default function KanaDrillPage() {
             onReveal={() => setRevealed(true)}
             onGrade={handleGrade}
             onLearned={handleLearned}
+            onSaveMnemonic={saveMnemonic}
             progressHint={
               current.mode === "quiz"
                 ? `streak ${current.kana.progress?.correct_streak ?? 0}/${MASTERY_STREAK} today · ${

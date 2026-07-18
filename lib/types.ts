@@ -34,6 +34,16 @@ export interface KanaCharacter {
   romaji: string;
   mnemonic: string;
   sort_order: number;
+  /** Attached client-side from user_kana_notes — NOT a kana_characters column. */
+  custom_mnemonic?: string | null;
+}
+
+export interface UserKanaNote {
+  id: string;
+  user_id: string;
+  kana_id: string;
+  mnemonic: string;
+  updated_at: string;
 }
 
 export interface UserKanaProgress {

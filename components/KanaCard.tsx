@@ -17,6 +17,7 @@ export default function KanaCard({
   onReveal,
   onGrade,
   onLearned,
+  onSaveMnemonic,
   progressHint,
 }: {
   kana: DrillKana;
@@ -26,6 +27,7 @@ export default function KanaCard({
   onReveal: () => void;
   onGrade: (gotIt: boolean) => void;
   onLearned: () => void;
+  onSaveMnemonic?: (kanaId: string, mnemonic: string | null) => void;
   progressHint?: string;
 }) {
   const showAnswer = mode === "learn" || revealed;
@@ -73,6 +75,89 @@ export default function KanaCard({
       // private-browsing/storage-disabled — just skip remembering, not worth surfacing
     }
   }
+
+  // Personal mnemonic override: self-generated mnemonics stick better than
+  // provided ones, so the card lets you rewrite it in place. Local state keeps
+  // the display in sync immediately (the parent's `current` card object is a
+  // snapshot); the component remounts per character via key={kana.id}.
+  const [customMnemonic, setCustomMnemonic] = useState<string | null>(kana.custom_mnemonic ?? null);
+  const [editingMnemonic, setEditingMnemonic] = useState(false);
+  const [mnemonicDraft, setMnemonicDraft] = useState("");
+  const shownMnemonic = customMnemonic ?? kana.mnemonic;
+
+  function saveMnemonicDraft() {
+    const trimmed = mnemonicDraft.trim();
+    const next = trimmed.length > 0 ? trimmed : null;
+    setCustomMnemonic(next);
+    setEditingMnemonic(false);
+    onSaveMnemonic?.(kana.id, next);
+  }
+
+  function resetMnemonic() {
+    setCustomMnemonic(null);
+    setEditingMnemonic(false);
+    onSaveMnemonic?.(kana.id, null);
+  }
+
+  const mnemonicEditButton = onSaveMnemonic && (
+    <button
+      onClick={() => {
+        setMnemonicDraft(customMnemonic ?? kana.mnemonic);
+        setEditingMnemonic(true);
+      }}
+      aria-label="Edit mnemonic"
+      style={{
+        padding: 0,
+        width: 24,
+        height: 24,
+        marginLeft: 6,
+        verticalAlign: "-6px",
+        border: "none",
+        background: "transparent",
+        boxShadow: "none",
+        color: "var(--text-muted)",
+        fontSize: 14,
+      }}
+    >
+      <i className="ti ti-pencil" aria-hidden="true" />
+    </button>
+  );
+
+  const mnemonicEditor = (
+    <div style={{ maxWidth: 400, margin: "0 auto 16px", textAlign: "left" }}>
+      <textarea
+        value={mnemonicDraft}
+        onChange={(e) => setMnemonicDraft(e.target.value)}
+        rows={2}
+        autoFocus
+        placeholder="Write your own mnemonic…"
+        style={{
+          width: "100%",
+          fontFamily: "inherit",
+          fontSize: 14,
+          padding: 10,
+          borderRadius: "var(--radius)",
+          border: "1px solid var(--border-strong)",
+          background: "var(--surface-2)",
+          color: "var(--foreground)",
+          resize: "vertical",
+        }}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 8, justifyContent: "center", flexWrap: "wrap" }}>
+        <button className="btn-primary" style={{ fontSize: 13 }} onClick={saveMnemonicDraft}>
+          Save
+        </button>
+        {customMnemonic && (
+          <button style={{ fontSize: 13 }} onClick={resetMnemonic}>
+            Reset to default
+          </button>
+        )}
+        <button style={{ fontSize: 13 }} onClick={() => setEditingMnemonic(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
 
   const speakerButton = isSpeakable && (
     <button
@@ -123,7 +208,14 @@ export default function KanaCard({
           <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.01em" }}>{kana.romaji}</span>
           {speakerButton}
         </div>
-        <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 14 }}>{kana.mnemonic}</p>
+        {editingMnemonic ? (
+          mnemonicEditor
+        ) : (
+          <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 14 }}>
+            {shownMnemonic}
+            {mnemonicEditButton}
+          </p>
+        )}
 
         {writingDone ? (
           <>
@@ -213,9 +305,14 @@ export default function KanaCard({
                 {kana.character}
               </div>
             )}
-            <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: isSpeakable ? 12 : 0 }}>
-              {kana.mnemonic}
-            </p>
+            {editingMnemonic ? (
+              mnemonicEditor
+            ) : (
+              <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: isSpeakable ? 12 : 0 }}>
+                {shownMnemonic}
+                {mnemonicEditButton}
+              </p>
+            )}
             {speakerButton}
           </div>
 

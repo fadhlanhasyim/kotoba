@@ -110,8 +110,7 @@ export default function KanaCard({
         padding: 0,
         width: 24,
         height: 24,
-        marginLeft: 6,
-        verticalAlign: "-6px",
+        flexShrink: 0,
         border: "none",
         background: "transparent",
         boxShadow: "none",
@@ -156,6 +155,18 @@ export default function KanaCard({
           Cancel
         </button>
       </div>
+    </div>
+  );
+
+  // Text + pencil as one flex row: the icon stays vertically centered against
+  // the text block and can never wrap onto its own line the way an inline box
+  // after a full line of text does.
+  const mnemonicRow = editingMnemonic ? (
+    mnemonicEditor
+  ) : (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, marginBottom: 14 }}>
+      <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{shownMnemonic}</p>
+      {mnemonicEditButton}
     </div>
   );
 
@@ -220,14 +231,7 @@ export default function KanaCard({
           <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.01em" }}>{kana.romaji}</span>
           {speakerButton}
         </div>
-        {editingMnemonic ? (
-          mnemonicEditor
-        ) : (
-          <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 14 }}>
-            {shownMnemonic}
-            {mnemonicEditButton}
-          </p>
-        )}
+        {mnemonicRow}
 
         {writingDone ? (
           <>
@@ -322,14 +326,7 @@ export default function KanaCard({
             <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" }}>{kana.romaji}</span>
             {speakerButton}
           </div>
-          {editingMnemonic ? (
-            mnemonicEditor
-          ) : (
-            <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 14 }}>
-              {shownMnemonic}
-              {mnemonicEditButton}
-            </p>
-          )}
+          {mnemonicRow}
 
           {progressHint && <p className="caption">{progressHint}</p>}
 

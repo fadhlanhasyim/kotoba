@@ -90,7 +90,10 @@ html {
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* clip, NOT hidden: overflow-x hidden forces overflow-y to compute to auto,
+     which turns body into a scroll container and silently breaks position:
+     sticky for every descendant (navbar, grade bar). clip only clips. */
+  overflow-x: clip;
 }
 
 body {
@@ -184,6 +187,17 @@ button:active,
   .login-glyph {
     animation: none;
   }
+}
+
+/* Touch taps shouldn't leave a lingering focus ring (the UA default blue was
+   leaking through); keyboard focus keeps a token-colored one. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Segmented control: a pill group where one option is active */

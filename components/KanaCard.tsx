@@ -175,14 +175,26 @@ export default function KanaCard({
     </button>
   );
 
+  // Deliberately quiet: this is toggled rarely (the choice is remembered), so it
+  // shouldn't compete visually with grading.
   const practiceToggle = showOptionalPractice && (
-    <div style={{ marginBottom: 20 }}>
-      <button onClick={togglePracticeWriting} style={{ fontSize: 13 }}>
+    <div>
+      <button
+        onClick={togglePracticeWriting}
+        style={{
+          fontSize: 12.5,
+          padding: "5px 12px",
+          border: "none",
+          background: "transparent",
+          boxShadow: "none",
+          color: "var(--text-muted)",
+        }}
+      >
         <i className="ti ti-pencil" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
-        {practiceWriting ? "Hide writing practice" : "Practice writing"}
+        {practiceWriting ? "Hide writing practice" : "Writing practice"}
       </button>
       {practiceWriting && (
-        <div style={{ marginTop: 14 }}>
+        <div style={{ marginTop: 10 }}>
           <WritingCanvas key={practiceCanvasKey} guideChar={kana.character} />
         </div>
       )}
@@ -219,7 +231,7 @@ export default function KanaCard({
 
         {writingDone ? (
           <>
-            {practiceToggle}
+            <div style={{ marginBottom: 14 }}>{practiceToggle}</div>
             <button className="btn-primary" onClick={onLearned} style={{ minWidth: 160 }}>
               Got it, next
               <i className="ti ti-arrow-right" style={{ marginLeft: 6, verticalAlign: "-2px" }} aria-hidden="true" />
@@ -277,10 +289,10 @@ export default function KanaCard({
 
   return (
     <div className="card rise" style={{ padding: showAnswer ? "20px" : "36px 24px 24px", textAlign: "center" }}>
+      {/* Direction only — the script/row/practice context already lives in the
+          page caption above the card; repeating "hiragana" here was noise. */}
       <div style={{ marginBottom: showAnswer ? 12 : 20, display: "flex", justifyContent: "center" }}>
-        <span className="badge badge-neutral">
-          {direction === "toKana" ? <>{kana.script} &middot; recall</> : kana.script}
-        </span>
+        <span className="badge badge-neutral">{direction === "toKana" ? "recall" : "recognize"}</span>
       </div>
 
       {!showAnswer ? (
@@ -319,31 +331,56 @@ export default function KanaCard({
             </p>
           )}
 
-          {progressHint && (
-            <p className="caption" style={{ marginBottom: 12 }}>
-              {progressHint}
-            </p>
+          {progressHint && <p className="caption">{progressHint}</p>}
+
+          {showOptionalPractice && (
+            <div style={{ marginTop: 14, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
+              {practiceToggle}
+            </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+
+          {/* Grading is the required action on every card, so it lives in a bar
+              that sticks to the viewport bottom — always visible AND in thumb
+              reach, no matter how tall the writing pad above it is. */}
+          <div
+            style={{
+              position: "sticky",
+              bottom: 12,
+              zIndex: 5,
+              marginTop: 16,
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 10,
+              padding: 10,
+              background: "var(--surface-1)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          >
             <button
               onClick={() => onGrade(false)}
-              style={{ padding: "12px", borderTop: "3px solid var(--red-500)" }}
+              style={{
+                padding: "12px",
+                background: "color-mix(in srgb, var(--red-500) 10%, var(--surface-2))",
+                borderColor: "color-mix(in srgb, var(--red-500) 30%, transparent)",
+              }}
             >
+              <i className="ti ti-x" style={{ marginRight: 7, color: "var(--red-500)" }} aria-hidden="true" />
               Missed it
             </button>
             <button
               onClick={() => onGrade(true)}
-              style={{ padding: "12px", borderTop: "3px solid var(--teal-400)" }}
+              style={{
+                padding: "12px",
+                background: "color-mix(in srgb, var(--teal-400) 10%, var(--surface-2))",
+                borderColor: "color-mix(in srgb, var(--teal-400) 30%, transparent)",
+              }}
             >
+              <i className="ti ti-check" style={{ marginRight: 7, color: "var(--teal-400)" }} aria-hidden="true" />
               Got it
             </button>
           </div>
-
-          {showOptionalPractice && (
-            <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-              {practiceToggle}
-            </div>
-          )}
         </>
       )}
     </div>

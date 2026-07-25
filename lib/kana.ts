@@ -3,6 +3,10 @@ import type { DrillKana, KanaCharacter, UserKanaProgress } from "@/lib/types";
 export const MASTERY_STREAK = 3;
 export const MASTERY_MIN_DAYS = 2; // must be correct on at least this many distinct days, not just in one sitting
 
+// Below this many mastered characters, a "mixed recall" test wouldn't be meaningfully
+// broader than just re-drilling a single row — not worth surfacing yet.
+export const MIN_MASTERED_RECALL = 10;
+
 export type Script = "hiragana" | "katakana";
 export type ScriptFilter = Script | "both";
 
@@ -179,4 +183,13 @@ export function confusableGroupStatus(members: DrillKana[]): "locked" | "ready" 
 
 export function pickInGroup(members: DrillKana[], excludeId: string | null): PickedCard | null {
   return pickPracticeCard(members, excludeId);
+}
+
+// Broad recall test: pool is every mastered character across whatever scope the caller
+// passes in (e.g. all rows under the current script filter) — not scoped to one row or
+// group. A miss demotes the character via the normal handleGrade streak-reset, same as
+// row-practice and confusable-pair drilling; no separate tracking needed.
+export function pickMasteredRecall(pool: DrillKana[], excludeId: string | null): PickedCard | null {
+  const mastered = pool.filter((c) => c.progress?.mastered_at);
+  return pickQuizCard(mastered, excludeId);
 }

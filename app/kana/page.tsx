@@ -9,6 +9,7 @@ import {
   CONFUSABLE_GROUPS,
   MASTERY_STREAK,
   MASTERY_MIN_DAYS,
+  MIN_MASTERED_RECALL,
   ROW_LABELS,
   buildRows,
   getRow,
@@ -16,6 +17,7 @@ import {
   isRowUnstarted,
   pickInGroup,
   pickInRow,
+  pickMasteredRecall,
   pickPracticeCard,
   rowStatus,
   today,
@@ -43,6 +45,7 @@ export default function KanaDrillPage() {
   const [dismissedRow, setDismissedRow] = useState<string | null>(null);
   const [practiceMode, setPracticeMode] = useState(false);
   const [showReference, setShowReference] = useState(false);
+  const [testingAll, setTestingAll] = useState(false);
   const [current, setCurrent] = useState<PickedCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -124,7 +127,19 @@ export default function KanaDrillPage() {
     setSelectedGroupId(null);
     setPracticeMode(false);
     setShowReference(false);
+    setTestingAll(false);
     setCurrent(null);
+  }
+
+  // Mixed recall test: pool is every mastered character across the current script
+  // filter, not scoped to one row — a broader, harder shuffle than row-practice.
+  function startMasteredTest() {
+    setSelectedRowKey(null);
+    setSelectedGroupId(null);
+    setTestingAll(true);
+    const pool = buildRows(kanaMerged, progress, script).flatMap((r) => r.characters);
+    setCurrent(pickMasteredRecall(pool, null));
+    setRevealed(false);
   }
 
   function startRow(row: KanaRow) {
@@ -172,6 +187,9 @@ export default function KanaDrillPage() {
       const group = CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId);
       const members = group ? groupCharacters(kanaMerged, nextProgress, group) : [];
       setCurrent(pickInGroup(members, previousCardId));
+    } else if (testingAll) {
+      const pool = buildRows(kanaMerged, nextProgress, script).flatMap((r) => r.characters);
+      setCurrent(pickMasteredRecall(pool, previousCardId));
     } else {
       setCurrent(null);
     }
@@ -239,7 +257,7 @@ export default function KanaDrillPage() {
   const selectedRow = selectedRowKey ? getRow(kanaMerged, progress, selectedRowKey) : null;
   const selectedGroup = selectedGroupId ? CONFUSABLE_GROUPS.find((g) => g.id === selectedGroupId) ?? null : null;
 
-  if (!selectedRow && !selectedGroup) {
+  if (!selectedRow && !selectedGroup && !testingAll) {
     const flatAll = rows.flatMap((r) => r.characters);
     const masteredCount = flatAll.filter((k) => k.progress?.mastered_at).length;
     const activeCount = flatAll.filter((k) => k.progress && !k.progress.mastered_at).length;
@@ -305,6 +323,40 @@ export default function KanaDrillPage() {
           ))}
         </div>
 
+        <div
+          className="card"
+          style={{
+            padding: 16,
+            marginBottom: 22,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            borderColor: masteredCount >= MIN_MASTERED_RECALL ? "var(--accent)" : undefined,
+          }}
+        >
+          <div>
+            <p style={{ fontWeight: 600, marginBottom: 2, display: "flex", alignItems: "center", gap: 7 }}>
+              <i className="ti ti-shuffle" style={{ color: "var(--accent)" }} aria-hidden="true" />
+              Mixed recall test
+            </p>
+            <p className="caption">
+              {masteredCount >= MIN_MASTERED_RECALL
+                ? `Every mastered character (${masteredCount}) shuffled together — a real test, not just this row.`
+                : `Master ${MIN_MASTERED_RECALL - masteredCount} more to unlock a mixed test across everything you know.`}
+            </p>
+          </div>
+          <button
+            className="btn-primary"
+            disabled={masteredCount < MIN_MASTERED_RECALL}
+            onClick={startMasteredTest}
+            style={{ flexShrink: 0 }}
+          >
+            Start
+          </button>
+        </div>
+
         <KanaRowPicker rows={rows} recommendedKey={recommendedKey} onSelect={openRow} />
 
         <h2 style={{ margin: "28px 0 10px" }}>Look-alikes</h2>
@@ -317,7 +369,8 @@ export default function KanaDrillPage() {
   }
 
   const isGroupDrill = !!selectedGroup;
-  const showOverview = !isGroupDrill && isRowUnstarted(selectedRow!) && dismissedRow !== selectedRow!.key;
+  const showOverview =
+    !isGroupDrill && !testingAll && !!selectedRow && isRowUnstarted(selectedRow) && dismissedRow !== selectedRow.key;
   const rowLabel = selectedRow ? `${ROW_LABELS[selectedRow.rowIndex]}-row` : "";
 
   return (
@@ -340,9 +393,11 @@ export default function KanaDrillPage() {
       ) : current ? (
         <>
           <p className="caption" style={{ marginBottom: 16 }}>
-            {isGroupDrill
-              ? `look-alikes · ${selectedGroup!.characters.join(" / ")}`
-              : `${selectedRow!.script} · ${rowLabel}${practiceMode ? " · practice" : ""}`}
+            {testingAll
+              ? `mixed recall · ${script}`
+              : isGroupDrill
+                ? `look-alikes · ${selectedGroup!.characters.join(" / ")}`
+                : `${selectedRow!.script} · ${rowLabel}${practiceMode ? " · practice" : ""}`}
           </p>
           <KanaCard
             key={current.kana.id}
@@ -365,6 +420,17 @@ export default function KanaDrillPage() {
             }
           />
         </>
+      ) : testingAll ? (
+        <div className="card rise" style={{ padding: "40px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }} aria-hidden="true">
+            <i className="ti ti-mood-empty" style={{ color: "var(--text-muted)" }} />
+          </div>
+          <h2 style={{ marginBottom: 8 }}>Nothing left to test</h2>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>
+            Every mastered character just got demoted from misses — go rebuild a streak, then come back for another
+            round.
+          </p>
+        </div>
       ) : showOverview ? (
         <KanaRowOverview characters={selectedRow!.characters} onStart={() => startRow(selectedRow!)} />
       ) : isGroupDrill ? (

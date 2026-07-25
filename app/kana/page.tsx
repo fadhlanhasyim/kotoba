@@ -323,39 +323,12 @@ export default function KanaDrillPage() {
           ))}
         </div>
 
-        <div
-          className="card"
-          style={{
-            padding: 16,
-            marginBottom: 22,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            borderColor: masteredCount >= MIN_MASTERED_RECALL ? "var(--accent)" : undefined,
-          }}
-        >
-          <div>
-            <p style={{ fontWeight: 600, marginBottom: 2, display: "flex", alignItems: "center", gap: 7 }}>
-              <i className="ti ti-shuffle" style={{ color: "var(--accent)" }} aria-hidden="true" />
-              Mixed recall test
-            </p>
-            <p className="caption">
-              {masteredCount >= MIN_MASTERED_RECALL
-                ? `Every mastered character (${masteredCount}) shuffled together — a real test, not just this row.`
-                : `Master ${MIN_MASTERED_RECALL - masteredCount} more to unlock a mixed test across everything you know.`}
-            </p>
-          </div>
-          <button
-            className="btn-primary"
-            disabled={masteredCount < MIN_MASTERED_RECALL}
-            onClick={startMasteredTest}
-            style={{ flexShrink: 0 }}
-          >
-            Start
+        {masteredCount >= MIN_MASTERED_RECALL && (
+          <button onClick={startMasteredTest} style={{ marginBottom: 22, fontSize: 13.5 }}>
+            <i className="ti ti-shuffle" style={{ marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true" />
+            Mixed recall test &middot; {masteredCount}
           </button>
-        </div>
+        )}
 
         <KanaRowPicker rows={rows} recommendedKey={recommendedKey} onSelect={openRow} />
 
